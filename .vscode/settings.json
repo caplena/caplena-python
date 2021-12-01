@@ -1,0 +1,14 @@
+{
+  "python.pythonPath": "/Users/xx/.virtualenvs/caplena-python/bin/python",
+  "python.analysis.typeCheckingMode": "strict",
+  "python.formatting.provider": "black",
+  "[python]": {
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
+  },
+  "python.linting.enabled": true,
+  "python.linting.flake8Enabled": true
+}

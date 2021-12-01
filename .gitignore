@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Testing
+.pytest_cache
+
+# Type Checking
+.mypy_cache
+
 # Environments
 .env
 .venv
