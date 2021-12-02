@@ -1,3 +1,7 @@
 """Python Library for Caplena REST API."""
 
-__version__ = "0.0.1"
+from caplena.version import __version__
+
+__all__ = [
+    "__version__",
+]
