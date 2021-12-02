@@ -1,9 +1,12 @@
-from caplena.configuration import Configuration
+from caplena.controllers.base_controller import BaseController
 
 
-class ProjectsController:
-    def __init__(self, config: Configuration):
-        pass
-
+class ProjectsController(BaseController):
     def list_projects(self):
-        pass
+        response = self.config.api_requestor.get(
+            base_uri=self.config.api_base_uri,
+            path="/projects",
+            api_key=self.config.api_key,
+            query_params={},
+        )
+        print(response)
