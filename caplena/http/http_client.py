@@ -62,3 +62,9 @@ class HttpClient:
         retry: Optional[HttpRetry] = None,
     ) -> HttpResponse:
         raise NotImplementedError("HttpClient subclasses must implement `request`.")
+
+    def get_timeout(self, timeout: Optional[int] = None):
+        return timeout if timeout is not None else self.timeout
+
+    def get_retry(self, retry: Optional[HttpRetry] = None):
+        return retry if retry is not None else self.retry
