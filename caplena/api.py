@@ -34,20 +34,25 @@ class ApiRequestor:
     ):
         self._http_client = http_client
 
-    def build_absolute_uri(
+    def build_uri(
         self,
         *,
         base_uri: Union[str, ApiBaseUri],
         path: str,
         path_params: Optional[Dict[str, str]] = None,
+        query_params: Optional[Dict[str, str]] = None,
     ) -> str:
+        path_params = path_params if path_params is not None else {}
+        query_params = query_params if query_params is not None else {}
         if isinstance(base_uri, ApiBaseUri):
             base_uri = base_uri.url
 
-        # TODO: clean up URIs (e.g. removing double slashes, and similar)
-        # TODO: implement path parameters
-        # TODO: implement query parameters
-        return base_uri + path
+        absolute_uri = Helpers.append_path(base_uri=base_uri, path=path)
+        return Helpers.build_qualified_uri(
+            absolute_uri,
+            path_params=path_params,
+            query_params=query_params,
+        )
 
     def build_request_headers(
         self,
@@ -81,10 +86,11 @@ class ApiRequestor:
         json: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
     ):
-        absolute_uri = self.build_absolute_uri(
+        absolute_uri = self.build_uri(
             base_uri=base_uri,
             path=path,
             path_params=path_params,
+            query_params=query_params,
         )
         headers = self.build_request_headers(
             headers=headers,
@@ -95,7 +101,6 @@ class ApiRequestor:
         return self._http_client.request(
             uri=absolute_uri,
             method=method,
-            query_params=query_params,
             headers=headers,
             json=json,
         )

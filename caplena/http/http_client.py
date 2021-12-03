@@ -26,7 +26,6 @@ class HttpClient:
         uri: str,
         *,
         method: HttpMethod = HttpMethod.GET,
-        query_params: Optional[Dict[str, str]] = None,
         headers: Optional[Dict[str, str]] = None,
         json: Optional[Dict[str, Any]] = None,
     ) -> HttpResponse:
