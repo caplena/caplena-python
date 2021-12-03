@@ -1,7 +1,8 @@
-from typing import Type
+from typing import Iterable, Type, Union
 
 from caplena.api import ApiBaseUri, ApiRequestor, ApiVersion
-from caplena.http.http_client import HttpClient
+from caplena.http.http_client import HttpClient, HttpMethod, HttpRetry
+from caplena.http.requests_http_client import RequestsHttpClient
 from caplena.logging import LoggingLevel
 
 
@@ -31,8 +32,20 @@ class Configuration:
         return self._backoff_factor
 
     @property
+    def retry_status_codes(self):
+        return self._retry_status_codes
+
+    @property
+    def retry_methods(self):
+        return self._retry_methods
+
+    @property
     def logging_level(self):
         return self._logging_level
+
+    @property
+    def http_client(self):
+        return self._http_client
 
     @property
     def api_requestor(self):
@@ -44,20 +57,52 @@ class Configuration:
         api_key: str,
         api_base_uri: ApiBaseUri = ApiBaseUri.PRODUCTION,
         api_version: ApiVersion = ApiVersion.DEFAULT,
-        timeout: int = 30,
-        max_retries: int = 0,
-        backoff_factor: int = 2,
-        http_client_class: Type[HttpClient],
+        timeout: int = HttpClient.DEFAULT_TIMEOUT,
+        max_retries: int = HttpRetry.DEFAULT_MAX_RETRIES,
+        backoff_factor: float = HttpRetry.DEFAULT_BACKOFF_FACTOR,
+        retry_status_codes: Iterable[int] = HttpRetry.DEFAULT_STATUS_CODES_TO_RETRY,
+        retry_methods: Iterable[HttpMethod] = HttpRetry.DEFAULT_ALLOWED_METHOD,
+        http_client: Union[Type[HttpClient], HttpClient] = RequestsHttpClient,
         logging_level: LoggingLevel = LoggingLevel.WARNING,
     ):
         self._api_key = api_key
         self._api_base_uri = api_base_uri
         self._api_version = api_version
-        self._http_client_class = http_client_class
         self._timeout = timeout
         self._max_retries = max_retries
         self._backoff_factor = backoff_factor
+        self._retry_status_codes = retry_status_codes
+        self._retry_methods = retry_methods
         self._logging_level = logging_level
 
-        self._http_client = http_client_class()
+        self._http_client = self.build_http_client(
+            http_client,
+            timeout=timeout,
+            max_retries=max_retries,
+            backoff_factor=backoff_factor,
+            retry_status_codes=retry_status_codes,
+            retry_methods=retry_methods,
+        )
         self._api_requestor = ApiRequestor(http_client=self._http_client)
+
+    @staticmethod
+    def build_http_client(
+        http_client: Union[Type[HttpClient], HttpClient],
+        *,
+        timeout: int = HttpClient.DEFAULT_TIMEOUT,
+        max_retries: int = HttpRetry.DEFAULT_MAX_RETRIES,
+        backoff_factor: float = HttpRetry.DEFAULT_BACKOFF_FACTOR,
+        retry_status_codes: Iterable[int] = HttpRetry.DEFAULT_STATUS_CODES_TO_RETRY,
+        retry_methods: Iterable[HttpMethod] = HttpRetry.DEFAULT_ALLOWED_METHOD,
+    ):
+        # check if we get http client instance or if we should instantiate it ourselves
+        if not isinstance(http_client, HttpClient):
+            http_client = http_client()
+
+        http_client.timeout = timeout
+        http_client.retry.max_retries = max_retries
+        http_client.retry.backoff_factor = backoff_factor
+        http_client.retry.retry_status_codes = retry_status_codes
+        http_client.retry.retry_methods = retry_methods
+
+        return http_client
