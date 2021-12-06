@@ -2,6 +2,8 @@ from enum import Enum
 from typing import Any, ClassVar, Dict, Iterable, Optional
 
 from caplena.http.http_response import HttpResponse
+from caplena.logging.default_logger import DefaultLogger
+from caplena.logging.logger import Logger
 
 
 class HttpMethod(Enum):
@@ -15,6 +17,9 @@ class HttpMethod(Enum):
     @property
     def method(self) -> str:
         return self.name.lower()
+
+    def __str__(self):
+        return self.name
 
 
 class HttpRetry:
@@ -42,14 +47,22 @@ class HttpRetry:
 class HttpClient:
     DEFAULT_TIMEOUT: ClassVar[int] = 120
     DEFAULT_RETRY: ClassVar[HttpRetry] = HttpRetry()
+    DEFAULT_LOGGER: ClassVar[Logger] = DefaultLogger("http[shared]")
 
     @property
     def identifier(self) -> str:
         raise NotImplementedError("HttpClient subclasses must provide a `identifier` property.")
 
-    def __init__(self, *, timeout: int = DEFAULT_TIMEOUT, retry: HttpRetry = DEFAULT_RETRY):
+    def __init__(
+        self,
+        *,
+        timeout: int = DEFAULT_TIMEOUT,
+        retry: HttpRetry = DEFAULT_RETRY,
+        logger: Logger = DEFAULT_LOGGER,
+    ):
         self.timeout = timeout
         self.retry = retry
+        self.logger = logger
 
     def request(
         self,
@@ -63,6 +76,8 @@ class HttpClient:
     ) -> HttpResponse:
         timeout = self.get_timeout(timeout)
         retry = self.get_retry(retry)
+
+        self.logger.info("Sending request to Caplena API", method=str(method), uri=uri)
 
         # TODO: handle retry here
         return self.request_raw(

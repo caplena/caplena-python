@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional, Union
 
 from caplena.helpers import Helpers
 from caplena.http.http_client import HttpClient, HttpMethod, HttpRetry
+from caplena.logging.logger import Logger
 
 
 class ApiBaseUri(Enum):
@@ -31,8 +32,10 @@ class ApiRequestor:
         self,
         *,
         http_client: HttpClient,
+        logger: Logger,
     ):
         self._http_client = http_client
+        self._logger = logger
 
     def build_uri(
         self,
