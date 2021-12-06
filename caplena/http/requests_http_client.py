@@ -22,20 +22,15 @@ class RequestsHttpClient(HttpClient):
         super().__init__(timeout=timeout, retry=retry)
         self.session = session if session is not None else Session()
 
-    def request(
+    def request_raw(
         self,
         uri: str,
         *,
-        method: HttpMethod = HttpMethod.GET,
+        method: HttpMethod,
+        timeout: int,
         headers: Optional[Dict[str, str]] = None,
         json: Optional[Dict[str, Any]] = None,
-        timeout: Optional[int] = None,
-        retry: Optional[HttpRetry] = None,
     ) -> HttpResponse:
-        timeout = self.get_timeout(timeout)
-        retry = self.get_retry(retry)
-
-        # TODO: implement retry
         response = self.session.request(
             url=uri,
             method=method.method,

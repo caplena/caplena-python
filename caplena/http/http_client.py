@@ -61,7 +61,28 @@ class HttpClient:
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
     ) -> HttpResponse:
-        raise NotImplementedError("HttpClient subclasses must implement `request`.")
+        timeout = self.get_timeout(timeout)
+        retry = self.get_retry(retry)
+
+        # TODO: handle retry here
+        return self.request_raw(
+            uri=uri,
+            method=method,
+            timeout=timeout,
+            headers=headers,
+            json=json,
+        )
+
+    def request_raw(
+        self,
+        uri: str,
+        *,
+        method: HttpMethod,
+        timeout: int,
+        headers: Optional[Dict[str, str]] = None,
+        json: Optional[Dict[str, Any]] = None,
+    ) -> HttpResponse:
+        raise NotImplementedError("HttpClient subclasses must implement `request_raw`.")
 
     def get_timeout(self, timeout: Optional[int] = None):
         return timeout if timeout is not None else self.timeout
