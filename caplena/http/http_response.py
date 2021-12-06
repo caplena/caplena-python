@@ -5,10 +5,11 @@ from typing import Any, Dict, Optional
 class HttpResponse:
     @property
     def json(self) -> Optional[Dict[str, Any]]:
-        if self._json is not None:
+        if hasattr(self, "_json"):
             return self._json
         elif self.text:
             self._json = json.loads(self.text)
+            return self._json
         else:
             return None
 
