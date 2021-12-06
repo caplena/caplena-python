@@ -3,6 +3,7 @@ from typing import Any, List, Tuple
 
 from caplena.api import ApiBaseUri, ApiRequestor, ApiVersion
 from caplena.http.requests_http_client import RequestsHttpClient
+from caplena.logging.default_logger import DefaultLogger
 
 
 class ApiVersionTests(unittest.TestCase):
@@ -21,7 +22,8 @@ class ApiRequestorTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
         cls.http_client = RequestsHttpClient()
-        cls.api_requestor = ApiRequestor(http_client=cls.http_client)
+        cls.logger = DefaultLogger(name="test-logger")
+        cls.api_requestor = ApiRequestor(http_client=cls.http_client, logger=cls.logger)
 
     def assertAbsoluteUriListEqual(
         self,
