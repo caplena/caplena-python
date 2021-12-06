@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Any, Dict, Optional, Union
 
 from caplena.helpers import Helpers
-from caplena.http.http_client import HttpClient, HttpMethod
+from caplena.http.http_client import HttpClient, HttpMethod, HttpRetry
 
 
 class ApiBaseUri(Enum):
@@ -85,6 +85,8 @@ class ApiRequestor:
         query_params: Optional[Dict[str, str]] = None,
         json: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[int] = None,
+        retry: Optional[HttpRetry] = None,
     ):
         absolute_uri = self.build_uri(
             base_uri=base_uri,
@@ -103,6 +105,8 @@ class ApiRequestor:
             method=method,
             headers=headers,
             json=json,
+            timeout=timeout,
+            retry=retry,
         )
 
     def get(
@@ -115,6 +119,8 @@ class ApiRequestor:
         path_params: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, str]] = None,
         headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[int] = None,
+        retry: Optional[HttpRetry] = None,
     ):
         return self.request_raw(
             base_uri=base_uri,
@@ -126,6 +132,8 @@ class ApiRequestor:
             query_params=query_params,
             json=None,
             headers=headers,
+            timeout=timeout,
+            retry=retry,
         )
 
     def post(
@@ -139,6 +147,8 @@ class ApiRequestor:
         query_params: Optional[Dict[str, str]] = None,
         json: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[int] = None,
+        retry: Optional[HttpRetry] = None,
     ):
         return self.request_raw(
             base_uri=base_uri,
@@ -150,6 +160,8 @@ class ApiRequestor:
             query_params=query_params,
             json=json,
             headers=headers,
+            timeout=timeout,
+            retry=retry,
         )
 
     def put(
@@ -163,6 +175,8 @@ class ApiRequestor:
         query_params: Optional[Dict[str, str]] = None,
         json: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[int] = None,
+        retry: Optional[HttpRetry] = None,
     ):
         return self.request_raw(
             base_uri=base_uri,
@@ -174,6 +188,8 @@ class ApiRequestor:
             query_params=query_params,
             json=json,
             headers=headers,
+            timeout=timeout,
+            retry=retry,
         )
 
     def patch(
@@ -187,6 +203,8 @@ class ApiRequestor:
         query_params: Optional[Dict[str, str]] = None,
         json: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[int] = None,
+        retry: Optional[HttpRetry] = None,
     ):
         return self.request_raw(
             base_uri=base_uri,
@@ -198,6 +216,8 @@ class ApiRequestor:
             query_params=query_params,
             json=json,
             headers=headers,
+            timeout=timeout,
+            retry=retry,
         )
 
     def delete(
@@ -210,6 +230,8 @@ class ApiRequestor:
         path_params: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, str]] = None,
         headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[int] = None,
+        retry: Optional[HttpRetry] = None,
     ):
         return self.request_raw(
             base_uri=base_uri,
@@ -221,4 +243,6 @@ class ApiRequestor:
             query_params=query_params,
             json=None,
             headers=headers,
+            timeout=timeout,
+            retry=retry,
         )
