@@ -1,8 +1,9 @@
 from enum import Enum
-from typing import Any, Dict, Optional, Union
+from typing import Any, ClassVar, Dict, Optional, Union
 
 from caplena.helpers import Helpers
 from caplena.http.http_client import HttpClient, HttpMethod, HttpRetry
+from caplena.http.http_response import HttpResponse
 from caplena.logging.logger import Logger
 
 
@@ -25,6 +26,31 @@ class ApiVersion(Enum):
             return self.name.replace("VER_", "").replace("_", "-")
         else:
             raise ValueError(f"Cannot convert `{self.name}` to a valid version string.")
+
+
+class ApiException(Exception):
+    DEFAULT_MESSAGE: ClassVar[
+        str
+    ] = "An unknown error occurred. Please reach out to us at support@caplena.com."
+
+    def __init__(
+        self,
+        *,
+        type: str,
+        code: str,
+        message: str = DEFAULT_MESSAGE,
+        details: Optional[str] = None,
+        help: Optional[str] = None,
+        context: Any = None,
+    ):
+        super().__init__(f"{type}[{code}]: {message}")
+
+        self.type = type
+        self.code = code
+        self.message = message
+        self.details = details
+        self.help = help
+        self.context = context
 
 
 class ApiRequestor:
@@ -75,6 +101,14 @@ class ApiRequestor:
             headers["Caplena-API-Version"] = api_version.version
 
         return headers
+
+    def raise_exc(self, response: HttpResponse):
+        exc_body = response.json
+        if exc_body:
+            ...
+        else:
+            raise ApiException(type="internal_error", code="body.invalid_format")
+        raise ApiException(type=exc_body["type"], code="ok")
 
     def request_raw(
         self,
