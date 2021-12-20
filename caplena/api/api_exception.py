@@ -1,3 +1,4 @@
+import json
 from typing import Any, ClassVar, Optional
 
 
@@ -16,7 +17,14 @@ class ApiException(Exception):
         help: Optional[str] = None,
         context: Any = None,
     ):
-        super().__init__(f"{type}[{code}]: {message}")
+        msg = f"{type}[{code}]: {message}"
+        if details:
+            msg += " " + details
+        if help:
+            msg += f" For more information, please visit {help}."
+        if context:
+            msg += f" (context={json.dumps(context)})"
+        super().__init__(msg)
 
         self.type = type
         self.code = code

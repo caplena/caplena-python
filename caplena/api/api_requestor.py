@@ -16,8 +16,8 @@ class ApiRequestor:
         http_client: HttpClient,
         logger: Logger,
     ):
-        self._http_client = http_client
-        self._logger = logger
+        self.http_client = http_client
+        self.logger = logger
 
     def build_uri(
         self,
@@ -50,7 +50,7 @@ class ApiRequestor:
         headers.setdefault("Accept", "application/json")
 
         # note: we do not allow clients to overwrite user-agent, caplena-api-key or caplena-api-version
-        headers["User-Agent"] = Helpers.get_user_agent(identifier=self._http_client.identifier)
+        headers["User-Agent"] = Helpers.get_user_agent(identifier=self.http_client.identifier)
         if api_key is not None:
             headers["Caplena-API-Key"] = api_key
         if api_version != ApiVersion.DEFAULT:
@@ -61,10 +61,19 @@ class ApiRequestor:
     def raise_exc(self, response: HttpResponse):
         exc_body = response.json
         if exc_body:
-            ...
+            self.logger.info(
+                "Received error from server", type=exc_body["type"], code=exc_body["code"]
+            )
+            raise ApiException(
+                type=exc_body["type"],
+                code=exc_body["code"],
+                message=exc_body["message"],
+                details=exc_body.get("details"),
+                help=exc_body.get("help"),
+                context=exc_body.get("context"),
+            )
         else:
             raise ApiException(type="internal_error", code="body.invalid_format")
-        raise ApiException(type=exc_body["type"], code="ok")
 
     def request_raw(
         self,
@@ -93,7 +102,7 @@ class ApiRequestor:
             api_key=api_key,
         )
 
-        return self._http_client.request(
+        return self.http_client.request(
             uri=absolute_uri,
             method=method,
             headers=headers,
