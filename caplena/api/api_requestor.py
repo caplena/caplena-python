@@ -1,56 +1,12 @@
-from enum import Enum
-from typing import Any, ClassVar, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
+from caplena.api.api_base_uri import ApiBaseUri
+from caplena.api.api_exception import ApiException
+from caplena.api.api_version import ApiVersion
 from caplena.helpers import Helpers
 from caplena.http.http_client import HttpClient, HttpMethod, HttpRetry
 from caplena.http.http_response import HttpResponse
 from caplena.logging.logger import Logger
-
-
-class ApiBaseUri(Enum):
-    LOCAL = "http://localhost:8000/v2"
-    PRODUCTION = "https://api.caplena.com/v2"
-
-    @property
-    def url(self) -> str:
-        return self.value
-
-
-class ApiVersion(Enum):
-    DEFAULT = 0
-    VER_2021_12_01 = 1
-
-    @property
-    def version(self) -> str:
-        if self.name != ApiVersion.DEFAULT.name:
-            return self.name.replace("VER_", "").replace("_", "-")
-        else:
-            raise ValueError(f"Cannot convert `{self.name}` to a valid version string.")
-
-
-class ApiException(Exception):
-    DEFAULT_MESSAGE: ClassVar[
-        str
-    ] = "An unknown error occurred. Please reach out to us at support@caplena.com."
-
-    def __init__(
-        self,
-        *,
-        type: str,
-        code: str,
-        message: str = DEFAULT_MESSAGE,
-        details: Optional[str] = None,
-        help: Optional[str] = None,
-        context: Any = None,
-    ):
-        super().__init__(f"{type}[{code}]: {message}")
-
-        self.type = type
-        self.code = code
-        self.message = message
-        self.details = details
-        self.help = help
-        self.context = context
 
 
 class ApiRequestor:
