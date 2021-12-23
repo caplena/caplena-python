@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from caplena.api.api_base_uri import ApiBaseUri
 from caplena.api.api_exception import ApiException
@@ -18,6 +18,9 @@ class ApiRequestor:
     ):
         self.http_client = http_client
         self.logger = logger
+
+    def build_payload(self, **kwargs: Any) -> Dict[str, Any]:
+        return Helpers.build_dict(**kwargs)
 
     def build_uri(
         self,
@@ -58,13 +61,13 @@ class ApiRequestor:
 
         return headers
 
-    def raise_exc(self, response: HttpResponse):
+    def build_exc(self, response: HttpResponse) -> ApiException:
         exc_body = response.json
         if exc_body:
             self.logger.info(
                 "Received error from server", type=exc_body["type"], code=exc_body["code"]
             )
-            raise ApiException(
+            return ApiException(
                 type=exc_body["type"],
                 code=exc_body["code"],
                 message=exc_body["message"],
@@ -73,7 +76,7 @@ class ApiRequestor:
                 context=exc_body.get("context"),
             )
         else:
-            raise ApiException(type="internal_error", code="body.invalid_format")
+            return ApiException(type="internal_error", code="body.invalid_format")
 
     def request_raw(
         self,
@@ -85,7 +88,7 @@ class ApiRequestor:
         api_key: Optional[str] = None,
         path_params: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, str]] = None,
-        json: Optional[Dict[str, Any]] = None,
+        json: Optional[Union[Dict[str, Any], List[Any]]] = None,
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
@@ -147,7 +150,7 @@ class ApiRequestor:
         api_key: Optional[str] = None,
         path_params: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, str]] = None,
-        json: Optional[Dict[str, Any]] = None,
+        json: Optional[Union[Dict[str, Any], List[Any]]] = None,
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
@@ -175,7 +178,7 @@ class ApiRequestor:
         api_key: Optional[str] = None,
         path_params: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, str]] = None,
-        json: Optional[Dict[str, Any]] = None,
+        json: Optional[Union[Dict[str, Any], List[Any]]] = None,
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
@@ -203,7 +206,7 @@ class ApiRequestor:
         api_key: Optional[str] = None,
         path_params: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, str]] = None,
-        json: Optional[Dict[str, Any]] = None,
+        json: Optional[Union[Dict[str, Any], List[Any]]] = None,
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
