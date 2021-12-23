@@ -1,7 +1,8 @@
 import platform
 import re
 import sys
-from typing import Dict
+from datetime import datetime
+from typing import Any, Dict, Iterable
 from urllib.parse import urlencode
 
 from caplena import version
@@ -26,6 +27,18 @@ class Helpers:
         return absolute_uri
 
     @staticmethod
+    def partial_dict(dict: Dict[str, Any], attrs: Iterable[str]) -> Dict[str, Any]:
+        partial: Dict[str, Any] = {}
+        for attr in attrs:
+            partial[attr] = dict[attr]
+        return partial
+
+    @staticmethod
+    def from_rfc3339_datetime(value: str) -> datetime:
+        iso_8601 = value.replace("Z", "+00:00")
+        return datetime.fromisoformat(iso_8601)
+
+    @staticmethod
     def build_qualified_uri(uri: str, *, path_params: Dict[str, str], query_params: Dict[str, str]):
         # constructing path parameters
         for param_key, param_value in path_params.items():
@@ -48,3 +61,11 @@ class Helpers:
             uri += "?" + query_string
 
         return uri
+
+    @staticmethod
+    def build_dict(**kwargs: Any) -> Dict[str, Any]:
+        constructed_dict: Dict[str, Any] = {}
+        for field_name, field in kwargs.items():
+            if field is not None:
+                constructed_dict[field_name] = field
+        return constructed_dict
