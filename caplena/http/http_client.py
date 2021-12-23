@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, ClassVar, Dict, Iterable, Optional
+from typing import Any, ClassVar, Dict, Iterable, List, Optional, Union
 
 from caplena.http.http_response import HttpResponse
 from caplena.logging.default_logger import DefaultLogger
@@ -70,7 +70,7 @@ class HttpClient:
         *,
         method: HttpMethod = HttpMethod.GET,
         headers: Optional[Dict[str, str]] = None,
-        json: Optional[Dict[str, Any]] = None,
+        json: Optional[Union[Dict[str, Any], List[Any]]] = None,
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
     ) -> HttpResponse:
@@ -95,7 +95,7 @@ class HttpClient:
         method: HttpMethod,
         timeout: int,
         headers: Optional[Dict[str, str]] = None,
-        json: Optional[Dict[str, Any]] = None,
+        json: Optional[Union[Dict[str, Any], List[Any]]] = None,
     ) -> HttpResponse:
         raise NotImplementedError("HttpClient subclasses must implement `request_raw`.")
 
