@@ -3,6 +3,7 @@ from typing import Iterable, Type, Union
 from caplena.api import ApiBaseUri, ApiVersion
 from caplena.configuration import Configuration
 from caplena.controllers.projects_controller import ProjectsController
+from caplena.endpoints.projects_endpoint import ProjectsEndpoint
 from caplena.http.http_client import HttpClient, HttpMethod, HttpRetry
 from caplena.http.requests_http_client import RequestsHttpClient
 from caplena.logging.logger import LoggingLevel
@@ -11,7 +12,7 @@ from caplena.logging.logger import LoggingLevel
 class Client:
     @property
     def projects(self):
-        return ProjectsController(config=self.config)
+        return self._projects_endpoint
 
     @property
     def config(self):
@@ -43,3 +44,6 @@ class Client:
             retry_methods=retry_methods,
             logging_level=logging_level,
         )
+
+        self._projects_controller = ProjectsController(config=self._config)
+        self._projects_endpoint = ProjectsEndpoint(controller=self._projects_controller)
