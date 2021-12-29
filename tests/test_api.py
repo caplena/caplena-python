@@ -1,9 +1,53 @@
 import unittest
 from typing import Any, List, Tuple
 
-from caplena.api import ApiBaseUri, ApiRequestor, ApiVersion
+from caplena.api import ApiBaseUri, ApiFilter, ApiRequestor, ApiVersion, ZeroOrMany
 from caplena.http.requests_http_client import RequestsHttpClient
 from caplena.logging.default_logger import DefaultLogger
+
+
+class Pf(ApiFilter):
+    @classmethod
+    def created(
+        cls,
+        *,
+        year: ZeroOrMany[int] = None,
+        year__gt: ZeroOrMany[int] = None,
+        year__lt: ZeroOrMany[int] = None,
+        month: ZeroOrMany[int] = None,
+        day: ZeroOrMany[int] = None,
+    ):
+        return cls.construct(
+            name="created",
+            filters={
+                "year": year,
+                "year.gt": year__gt,
+                "year.lt": year__lt,
+                "month": month,
+                "day": day,
+            },
+        )
+
+    @classmethod
+    def last_modified(
+        cls,
+        *,
+        year: ZeroOrMany[int] = None,
+        year__gt: ZeroOrMany[int] = None,
+        year__lt: ZeroOrMany[int] = None,
+        month: ZeroOrMany[int] = None,
+        day: ZeroOrMany[int] = None,
+    ):
+        return cls.construct(
+            name="last_modified",
+            filters={
+                "year": year,
+                "year.gt": year__gt,
+                "year.lt": year__lt,
+                "month": month,
+                "day": day,
+            },
+        )
 
 
 class ApiVersionTests(unittest.TestCase):
@@ -147,3 +191,70 @@ class ApiRequestorTests(unittest.TestCase):
         ]
 
         self.assertAbsoluteUriListEqual(expected, absolute_uris)
+
+
+class ApiFilterTests(unittest.TestCase):
+    def test_constructing_filter_succeeds(self):
+        filters = [
+            Pf(),
+            Pf.created(),
+            Pf.created(year__gt=[10, 20], year__lt=[20]),
+        ]
+        expected = [
+            "",
+            "",
+            "(created.year.gt={10,20}) & (created.year.lt={20})",
+        ]
+
+        self.assertListEqual(expected, [str(filt) for filt in filters])
+
+    def test_or_filter_fails(self):
+        with self.assertRaisesRegex(ValueError, "disjunction of already conjuncted filters"):
+            (Pf.created(year__lt=[2000, 1990]) & Pf.created(month=20)) | Pf.created(month=1)
+
+        with self.assertRaisesRegex(ValueError, "disjunction of already conjuncted filters"):
+            Pf.created(year__lt=[2000, 1990], month=20) | Pf.created(month=1)
+
+        with self.assertRaisesRegex(ValueError, "as there is already a different filter"):
+            Pf.created(year__lt=[2000, 1990]) | Pf.last_modified(day=20)
+
+    def test_or_filter_succeeds(self):
+        filters = [
+            Pf.created(year__gt=2020) | Pf(),
+            Pf() | Pf.created(year__gt=[10, 20], year__lt=[20]),
+            Pf.created(year__gt=10) | Pf.created(),
+            Pf.created(year__gt=10) | Pf.created(year__lt=[2, 4, 8]) | Pf.created(day=4),
+            Pf.created(year__gt=10) | Pf.created(year__gt=None) | Pf.created(year__gt=12),
+        ]
+        expected = [
+            "(created.year.gt={2020})",
+            "(created.year.gt={10,20}) & (created.year.lt={20})",
+            "(created.year.gt={10})",
+            "(created.year.gt={10} | created.year.lt={2,4,8} | created.day={4})",
+            "(created.year.gt={10,12})",
+        ]
+
+        self.assertListEqual(expected, [str(filt) for filt in filters])
+
+    def test_and_filter_succeeds(self):
+        filters = [
+            Pf.created(year__gt=2020) & Pf(),
+            Pf() & Pf.created(year__gt=[10, 20], year__lt=[20]),
+            Pf.created(year__gt=10) & Pf.created(),
+            Pf.created(year__gt=10) & Pf.created(year__lt=[2, 4, 8]) & Pf.created(day=4),
+            Pf.created(year__gt=10) & Pf.created(year__gt=None) & Pf.created(year__gt=12),
+            Pf.created(year__gt=[10, 20, 30], month=[1, 2, 3], day=[4, 5, 6])
+            & Pf.last_modified(year=2021, month=[4, 5, 6], day=None)  # noqa: W503
+            & Pf.created(year__lt=[120, 130], year__gt=[1000, 2000]),  # noqa: W503
+        ]
+        expected = [
+            "(created.year.gt={2020})",
+            "(created.year.gt={10,20}) & (created.year.lt={20})",
+            "(created.year.gt={10})",
+            "(created.year.gt={10}) & (created.year.lt={2,4,8}) & (created.day={4})",
+            "(created.year.gt={10}) & (created.year.gt={12})",
+            "(created.year.gt={10,20,30}) & (created.month={1,2,3}) & (created.day={4,5,6}) & (created.year.gt={1000,2000}) & (created.year.lt={120,130}) "
+            "& (last_modified.year={2021}) & (last_modified.month={4,5,6})",
+        ]
+
+        self.assertListEqual(expected, [str(filt) for filt in filters])
