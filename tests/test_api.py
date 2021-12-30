@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timezone
 from typing import Any, List, Tuple
 
 from caplena.api import ApiBaseUri, ApiFilter, ApiRequestor, ApiVersion, ZeroOrMany
@@ -32,6 +33,7 @@ class Pf(ApiFilter):
     def last_modified(
         cls,
         *,
+        gte: ZeroOrMany[datetime] = None,
         year: ZeroOrMany[int] = None,
         year__gt: ZeroOrMany[int] = None,
         year__lt: ZeroOrMany[int] = None,
@@ -41,11 +43,21 @@ class Pf(ApiFilter):
         return cls.construct(
             name="last_modified",
             filters={
+                "gte": gte,
                 "year": year,
                 "year.gt": year__gt,
                 "year.lt": year__lt,
                 "month": month,
                 "day": day,
+            },
+        )
+
+    @classmethod
+    def tags(cls, tag: ZeroOrMany[str]):
+        return cls.construct(
+            name="tags",
+            filters={
+                cls.DEFAULT: tag,
             },
         )
 
@@ -258,3 +270,70 @@ class ApiFilterTests(unittest.TestCase):
         ]
 
         self.assertListEqual(expected, [str(filt) for filt in filters])
+
+    def test_default_filter_succeeds(self):
+        filters = [
+            Pf.tags("one-tag"),
+            Pf.tags(["one-tag", "other-tag"]),
+            Pf.tags(["one-tag", "other-tag"]) | Pf.tags(None) | Pf.tags("third-tag"),
+        ]
+        expected = [
+            "(tags={one-tag})",
+            "(tags={one-tag,other-tag})",
+            "(tags={one-tag,other-tag,third-tag})",
+        ]
+
+        self.assertListEqual(expected, [str(filt) for filt in filters])
+
+
+class ApiFilterQueryParamTests(unittest.TestCase):
+    def test_encoding_query_parameters_succeeds(self):
+        filters = [
+            Pf.created(year=[2020, 2021, 2022], year__gt=[20, 30, 40], day=[10, 20, 30])
+            & (Pf.tags("a") | Pf.tags("b") | Pf.tags("c")),  # noqa: W503
+            Pf.created(year__gt=2020, year__lt=2040)
+            & Pf.last_modified(day=None, month=12)  # noqa: W503
+            & Pf.tags(["a", "b", "c"]),  # noqa: W503
+            Pf(),
+            Pf.created(),
+        ]
+        expected = [
+            {
+                "created": "year:2020,year:2021,year:2022;year.gt:20,year.gt:30,year.gt:40;day:10,day:20,day:30",
+                "tags": "a,b,c",
+            },
+            {
+                "created": "year.gt:2020;year.lt:2040",
+                "last_modified": "month:12",
+                "tags": "a,b,c",
+            },
+            {},
+            {},
+        ]
+
+        self.assertListEqual(expected, [filt.to_query_params() for filt in filters])
+
+    def test_encoding_datetime_succeeds(self):
+        filt = Pf.last_modified(
+            gte=[
+                datetime(2022, 1, 1, tzinfo=timezone.utc),
+                datetime(2000, 3, 31, 18, tzinfo=timezone.utc),
+            ]
+        ) & Pf.last_modified(
+            gte=datetime(2021, 5, 17, 12, 10, 50, 500000, tzinfo=timezone.utc)
+        )  # noqa: W503
+        expected = {
+            "last_modified": "gte:2022-01-01T00\\:00\\:00.000Z,gte:2000-03-31T18\\:00\\:00.000Z;gte:2021-05-17T12\\:10\\:50.500Z"
+        }
+
+        self.assertEqual(expected, filt.to_query_params())
+
+    def test_escaping_special_characters_succeeds(self):
+        filt = (
+            Pf.tags("abc cdef \\ \n ghj xyz") | Pf.tags("th:is;is;just,a,ve:ry;lo:ng;tag")
+        ) & Pf.tags("just\\some\\\nmany\\\\\\backslashes\\n")
+        expected = {
+            "tags": "abc cdef \\\\ \n ghj xyz,th\\:is\\;is\\;just\\,a\\,ve\\:ry\\;lo\\:ng\\;tag;just\\\\some\\\\\nmany\\\\\\\\\\\\backslashes\\\\n"
+        }
+
+        self.assertEqual(expected, filt.to_query_params())
