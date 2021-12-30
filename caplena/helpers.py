@@ -34,9 +34,21 @@ class Helpers:
         return partial
 
     @staticmethod
-    def from_rfc3339_datetime(value: str) -> datetime:
+    def from_rfc3339_datetime(value: str):
         iso_8601 = value.replace("Z", "+00:00")
         return datetime.fromisoformat(iso_8601)
+
+    @staticmethod
+    def to_rfc3339_datetime(dt: datetime):
+        rfc3339 = dt.strftime("%Y-%m-%dT%H:%M:%S.")
+        rfc3339 += dt.strftime("%f")[:3]
+
+        tz = dt.strftime("%z")
+        if tz == "+0000":
+            tz = "Z"
+        else:
+            tz = tz[:3] + ":" + tz[3:]
+        return rfc3339 + tz
 
     @staticmethod
     def build_qualified_uri(uri: str, *, path_params: Dict[str, str], query_params: Dict[str, str]):
@@ -61,6 +73,11 @@ class Helpers:
             uri += "?" + query_string
 
         return uri
+
+    @staticmethod
+    def build_escaped_filter_str(value: str):
+        escaped = value.replace("\\", "\\\\")
+        return re.sub(r"(:|,|;)", r"\\\1", escaped)
 
     @staticmethod
     def build_dict(**kwargs: Any) -> Dict[str, Any]:
