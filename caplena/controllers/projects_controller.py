@@ -1,6 +1,8 @@
 from typing import Any, Dict, List, Optional
 
+from caplena.api import ApiOrdering
 from caplena.controllers.base_controller import BaseController
+from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
 
 
 class ProjectsController(BaseController):
@@ -42,21 +44,17 @@ class ProjectsController(BaseController):
         *,
         page: int = 1,
         limit: int = 10,
-        name: Optional[str] = None,
-        owner: Optional[str] = None,
-        tags: Optional[str] = None,
-        upload_status: Optional[str] = None,
-        language: Optional[str] = None,
-        translation_status: Optional[str] = None,
-        translation_engine: Optional[str] = None,
-        created: Optional[str] = None,
-        last_modified: Optional[str] = None,
-        order_by: Optional[str] = None,
+        filter: Optional[ProjectsFilter] = None,
+        order_by: ApiOrdering = ApiOrdering.desc("last_modified"),
     ):
-        # TODO: add filters
         return self.get(
             path="/projects",
-            query_params={},
+            query_params={
+                "page": str(page),
+                "limit": str(limit),
+            },
+            filter=filter,
+            order_by=order_by,
         )
 
     def append_rows(
@@ -91,15 +89,16 @@ class ProjectsController(BaseController):
         id: str,
         page: int = 1,
         limit: int = 10,
-        columns: Optional[str] = None,
-        created: Optional[str] = None,
-        last_modified: Optional[str] = None,
+        filter: Optional[RowsFilter] = None,
     ):
-        # TODO: add filters
         return self.get(
             path="/projects/{id}/rows",
             path_params={"id": id},
-            query_params={},
+            query_params={
+                "page": str(page),
+                "limit": str(limit),
+            },
+            filter=filter,
         )
 
     def retrieve_row(self, *, p_id: str, r_id: str):
