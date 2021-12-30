@@ -1,5 +1,8 @@
 import copy
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from datetime import datetime
+from typing import Any, ClassVar, Dict, List, Optional, TypeVar, Union
+
+from caplena.helpers import Helpers
 
 T = TypeVar("T")
 U = TypeVar("U", bound="ApiFilter")
@@ -9,13 +12,32 @@ Constraints = Dict[str, List[Dict[str, List[Any]]]]
 
 
 class ApiFilter:
+    DEFAULT: ClassVar[str] = "__default__"
+
     def __init__(
         self,
         constraints: Optional[Constraints] = None,
         has_conjunction: bool = False,
     ):
+        # TODO: how to restrict AND, OR, NONE operations
         self._constraints: Constraints = constraints if constraints is not None else {}
         self._has_conjunction = has_conjunction
+
+    def to_query_params(self):
+        query_params: Dict[str, str] = {}
+        for query_param, clauses in self._constraints.items():
+            stringified_clauses: List[str] = []
+            for clause in clauses:
+                stringified_literals: List[str] = []
+                for modifier, values in clause.items():
+                    for value in values:
+                        str_value = Helpers.build_escaped_filter_str(self.to_string(value=value))
+                        if modifier != self.DEFAULT:
+                            str_value = f"{modifier}:" + str_value
+                        stringified_literals.append(str_value)
+                stringified_clauses.append(",".join(stringified_literals))
+            query_params[query_param] = ";".join(stringified_clauses)
+        return query_params
 
     def __str__(self):
         stringified_clauses: List[str] = []
@@ -23,11 +45,12 @@ class ApiFilter:
             for clause in clauses:
                 stringified_literals: List[str] = []
                 for modifier, values in clause.items():
+                    filt_name = f"{name}"
+                    if modifier != self.DEFAULT:
+                        filt_name += f".{modifier}"
                     str_values = ",".join([str(value) for value in values])
-                    stringified_literals.append(f"{name}.{modifier}={{{str_values}}}")
-
+                    stringified_literals.append(f"{filt_name}={{{str_values}}}")
                 stringified_clauses.append("(" + " | ".join(stringified_literals) + ")")
-
         return " & ".join(stringified_clauses)
 
     def __and__(self: U, other: U) -> U:
@@ -110,3 +133,10 @@ class ApiFilter:
             return None
         else:
             return [values]
+
+    @staticmethod
+    def to_string(*, value: Any) -> str:
+        if isinstance(value, datetime):
+            return Helpers.to_rfc3339_datetime(value)
+        else:
+            return str(value)
