@@ -2,6 +2,8 @@ from typing import Any, Dict, List, Optional, Union
 
 from caplena.api.api_base_uri import ApiBaseUri
 from caplena.api.api_exception import ApiException
+from caplena.api.api_filter import ApiFilter
+from caplena.api.api_ordering import ApiOrdering
 from caplena.api.api_version import ApiVersion
 from caplena.helpers import Helpers
 from caplena.http.http_client import HttpClient, HttpMethod, HttpRetry
@@ -41,6 +43,24 @@ class ApiRequestor:
             path_params=path_params,
             query_params=query_params,
         )
+
+    def build_query_params(
+        self,
+        *,
+        query_params: Optional[Dict[str, str]] = None,
+        filter: Optional[ApiFilter] = None,
+        order_by: Optional[ApiOrdering] = None,
+    ):
+        new_query_params: Dict[str, str] = {}
+
+        if filter is not None:
+            new_query_params.update(filter.to_query_params())
+        if order_by is not None:
+            new_query_params.update(order_by.to_query_params())
+        if query_params is not None:
+            new_query_params.update(query_params)
+
+        return query_params
 
     def build_request_headers(
         self,
@@ -124,9 +144,14 @@ class ApiRequestor:
         path_params: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, str]] = None,
         headers: Optional[Dict[str, str]] = None,
+        filter: Optional[ApiFilter] = None,
+        order_by: Optional[ApiOrdering] = None,
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
     ):
+        query_params = self.build_query_params(
+            filter=filter, order_by=order_by, query_params=query_params
+        )
         return self.request_raw(
             base_uri=base_uri,
             path=path,

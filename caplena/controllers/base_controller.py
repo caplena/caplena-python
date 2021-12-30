@@ -1,5 +1,6 @@
 from typing import Any, ClassVar, Dict, Iterable, List, Optional, Union
 
+from caplena.api import ApiFilter, ApiOrdering
 from caplena.configuration import Configuration
 
 
@@ -26,6 +27,8 @@ class BaseController:
         allowed_codes: Iterable[int] = DEFAULT_ALLOWED_CODES,
         path_params: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, str]] = None,
+        filter: Optional[ApiFilter] = None,
+        order_by: Optional[ApiOrdering] = None,
     ):
         response = self._config.api_requestor.get(
             base_uri=self._config.api_base_uri,
@@ -33,6 +36,8 @@ class BaseController:
             api_key=self._config.api_key,
             path_params=path_params,
             query_params=query_params,
+            filter=filter,
+            order_by=order_by,
         )
 
         if response.status_code not in allowed_codes:
