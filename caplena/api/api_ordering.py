@@ -3,6 +3,8 @@ from typing import List, Optional, Tuple, TypeVar
 
 from typing_extensions import Literal
 
+from caplena.helpers import Helpers
+
 T = TypeVar("T", bound="ApiOrdering")
 Ordering = List[Tuple[Literal["asc", "desc"], str]]
 
@@ -13,6 +15,13 @@ class ApiOrdering:
             self._ordering = []
         else:
             self._ordering = ordering
+
+    def to_query_params(self):
+        stringified_ordering: List[str] = []
+        for (direction, name) in self._ordering:
+            name = Helpers.build_escaped_filter_str(name)
+            stringified_ordering.append(f"{direction}:{name}")
+        return {"order_by": ";".join(stringified_ordering)}
 
     @classmethod
     def asc(cls, name: str):
