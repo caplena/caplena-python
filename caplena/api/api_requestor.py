@@ -60,7 +60,7 @@ class ApiRequestor:
         if query_params is not None:
             new_query_params.update(query_params)
 
-        return query_params
+        return new_query_params
 
     def build_request_headers(
         self,
