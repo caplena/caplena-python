@@ -28,6 +28,9 @@ class BaseResource(DictMixin, Generic[U]):
         self._id = id
         self._controller = controller
 
+    def __str__(self):
+        return f"{self.__class__.__name__}(id={self._id})"
+
     def dict(self) -> Dict[str, Any]:
         resource = super().dict()
         resource["id"] = self._id
