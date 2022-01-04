@@ -1,12 +1,10 @@
 import copy
 from typing import Callable, Generic, List, Optional, Tuple, TypeVar
 
-from caplena.resources.base.base_resource import BaseResource
-
-T = TypeVar("T", bound="BaseResource")
+T = TypeVar("T")
 
 
-class BaseIterator(Generic[T]):
+class Iterator(Generic[T]):
     @property
     def count(self) -> int:
         if self._total_count is not None:
