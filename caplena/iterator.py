@@ -3,8 +3,6 @@ from typing import Callable, Generic, List, Optional, Tuple, TypeVar
 
 T = TypeVar("T")
 
-# TODO: converting to list does not work.
-
 
 class Iterator(Generic[T]):
     @property
@@ -38,7 +36,7 @@ class Iterator(Generic[T]):
         self._total_count: Optional[int] = total_count
         self._has_next: bool = has_next
 
-    def _retrieve_next_page(self):
+    def _retrieve_next_page(self) -> None:
         self._current_page += 1
         results, has_next, count = self._results_fetcher(self._current_page)
 
@@ -48,10 +46,10 @@ class Iterator(Generic[T]):
         self._total_count = count
         self._has_next = has_next
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.count if self.count < self._limit else self._limit
 
-    def __iter__(self):
+    def __iter__(self) -> "Iterator[T]":
         return type(self)(
             results_fetcher=self._results_fetcher,
             limit=self._limit,
@@ -62,7 +60,7 @@ class Iterator(Generic[T]):
             has_next=self._has_next,
         )
 
-    def __next__(self):
+    def __next__(self) -> T:
         if self._total_results_iterated >= self._limit:
             raise StopIteration()
 
