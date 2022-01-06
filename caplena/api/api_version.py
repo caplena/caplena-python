@@ -3,7 +3,7 @@ from enum import Enum
 
 class ApiVersion(Enum):
     DEFAULT = 0
-    VER_2021_12_01 = 1
+    VER_2022_01_01 = 1
 
     @property
     def version(self) -> str:

@@ -59,7 +59,7 @@ def project_rows_create_payload():
     ]
 
 
-class ProjectsEndpointTests(unittest.TestCase):
+class ProjectsControllerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
