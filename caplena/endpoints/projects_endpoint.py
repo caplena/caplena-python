@@ -213,15 +213,21 @@ class ProjectDetail(BaseResource[ProjectsController]):
     translation_status: Optional[str]
     translation_engine: Optional[str]
 
-    # TODO: implement resource actions
-    def delete(self):
-        self._controller
+    def remove(self):
+        self.controller.remove(id=self.id)
 
-    def append_row(self):
-        pass
+    def append_row(self, *, columns: List[Dict[str, Any]]):
+        return self.controller.append_row(id=self.id, columns=columns)
 
-    def append_rows(self):
-        pass
+    def append_rows(self, *, rows: List[Dict[str, Any]]):
+        return self.controller.append_rows(id=self.id, rows=rows)
+
+    def retrieve_row(self, *, id: str):
+        return self.controller.retrieve_row(p_id=self.id, r_id=id)
+
+    def refresh(self):
+        project = self.controller.retrieve(id=self.id)
+        self.refresh_from(attrs=project._attrs)
 
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]):
@@ -264,15 +270,21 @@ class ProjectList(BaseResource[ProjectsController]):
     translation_status: Optional[str]
     translation_engine: Optional[str]
 
-    # TODO: implement resource actions
-    def delete(self):
-        self._controller
+    def remove(self):
+        self.controller.remove(id=self.id)
 
-    def append_row(self):
-        pass
+    def append_row(self, *, columns: List[Dict[str, Any]]):
+        return self.controller.append_row(id=self.id, columns=columns)
 
-    def append_rows(self):
-        pass
+    def append_rows(self, *, rows: List[Dict[str, Any]]):
+        return self.controller.append_rows(id=self.id, rows=rows)
+
+    def retrieve_row(self, *, id: str):
+        return self.controller.retrieve_row(p_id=self.id, r_id=id)
+
+    def refresh(self):
+        project = self.controller.retrieve(id=self.id)
+        self.refresh_from(attrs=project._attrs)
 
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]):
@@ -363,8 +375,6 @@ class Row(BaseResource[ProjectsController]):
     created: datetime
     last_modified: datetime
     columns: List[Column]
-
-    # TODO: implement resource actions
 
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]):
