@@ -7,14 +7,23 @@ class LoggingLevel(Enum):
     WARNING = 2
     ERROR = 3
 
+    @property
+    def level(self) -> int:
+        return self.value
+
 
 class Logger:
     @property
     def name(self):
         return self._name
 
-    def __init__(self, name: str):
+    @property
+    def loggin_level(self):
+        return self._logging_level
+
+    def __init__(self, name: str, logging_level: LoggingLevel = LoggingLevel.WARNING):
         self._name = name
+        self._logging_level = logging_level
 
     def log(self, msg: str, *, level: LoggingLevel, **extra: str) -> None:
         raise NotImplementedError("Logger subclasses must implement `log`.")

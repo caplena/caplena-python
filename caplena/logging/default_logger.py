@@ -10,4 +10,5 @@ class DefaultLogger(Logger):
         if len(extra_str) > 0:
             msg += " (" + ", ".join(extra_str) + ")"
 
-        print(msg, file=stderr)
+        if level.level >= self._logging_level.level:
+            print(msg, file=stderr)
