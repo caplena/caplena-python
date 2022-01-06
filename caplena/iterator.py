@@ -3,6 +3,8 @@ from typing import Callable, Generic, List, Optional, Tuple, TypeVar
 
 T = TypeVar("T")
 
+# TODO: converting to list does not work.
+
 
 class Iterator(Generic[T]):
     @property

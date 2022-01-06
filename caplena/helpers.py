@@ -5,13 +5,13 @@ from datetime import datetime
 from typing import Any, Dict, Iterable
 from urllib.parse import urlencode
 
-from caplena import version
+from caplena.version import __version__
 
 
 class Helpers:
     @staticmethod
     def get_user_agent(identifier: str):
-        client_info = f"{identifier}/{version.__version__}"
+        client_info = f"{identifier}/{__version__}"
         python_info = "python/{ver.major}.{ver.minor}.{ver.micro}".format(ver=sys.version_info)
         system_info = f"{platform.system()}/{platform.release()}"
         return " ".join([client_info, python_info, system_info])

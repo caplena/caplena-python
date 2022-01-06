@@ -218,7 +218,6 @@ class BaseObject(Generic[BC]):
 
     def _recursive_controller_set(self, attr: Any, *, value: BC):
         if isinstance(attr, BaseObject):
-            print("setting recursive value.")
             self._controller = value
         elif isinstance(attr, list):
             [self._recursive_controller_set(i, value=value) for i in attr]  # type: ignore
@@ -278,7 +277,7 @@ class BaseObject(Generic[BC]):
 
     @classmethod
     def parse_obj(cls: Type[T], obj: Dict[str, Any]) -> T:
-        raise NotImplementedError(f"{cls.__name__} must implement the classmethod `_parse_obj`.")
+        return cls(**obj)
 
 
 class BaseResource(BaseObject[BC]):
