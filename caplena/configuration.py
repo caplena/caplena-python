@@ -8,51 +8,51 @@ from caplena.logging.logger import Logger, LoggingLevel
 
 class Configuration:
     @property
-    def api_key(self):
+    def api_key(self) -> str:
         return self._api_key
 
     @property
-    def api_base_uri(self):
+    def api_base_uri(self) -> ApiBaseUri:
         return self._api_base_uri
 
     @property
-    def api_version(self):
+    def api_version(self) -> ApiVersion:
         return self._api_version
 
     @property
-    def timeout(self):
+    def timeout(self) -> int:
         return self._timeout
 
     @property
-    def max_retries(self):
+    def max_retries(self) -> int:
         return self._max_retries
 
     @property
-    def backoff_factor(self):
+    def backoff_factor(self) -> float:
         return self._backoff_factor
 
     @property
-    def retry_status_codes(self):
+    def retry_status_codes(self) -> Iterable[int]:
         return self._retry_status_codes
 
     @property
-    def retry_methods(self):
+    def retry_methods(self) -> Iterable[HttpMethod]:
         return self._retry_methods
 
     @property
-    def http_client(self):
+    def http_client(self) -> HttpClient:
         return self._http_client
 
     @property
-    def api_requestor(self):
+    def api_requestor(self) -> ApiRequestor:
         return self._api_requestor
 
     @property
-    def logging_level(self):
+    def logging_level(self) -> LoggingLevel:
         return self._logging_level
 
     @property
-    def logger(self):
+    def logger(self) -> Logger:
         return self._logger
 
     def __init__(
@@ -104,7 +104,7 @@ class Configuration:
         backoff_factor: float = HttpRetry.DEFAULT_BACKOFF_FACTOR,
         retry_status_codes: Iterable[int] = HttpRetry.DEFAULT_STATUS_CODES_TO_RETRY,
         retry_methods: Iterable[HttpMethod] = HttpRetry.DEFAULT_ALLOWED_METHOD,
-    ):
+    ) -> HttpClient:
         # check if we get http client instance or if we should instantiate it ourselves
         if not isinstance(http_client, HttpClient):
             http_client = http_client()

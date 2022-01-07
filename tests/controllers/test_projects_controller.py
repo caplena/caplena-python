@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, ClassVar, Dict, List, Optional, cast
 
 from caplena.api.api_exception import ApiException
 from caplena.endpoints.projects_endpoint import ProjectDetail, ProjectsController, Row
@@ -8,7 +8,7 @@ from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
 from tests.common import common_config
 
 
-def project_create_payload():
+def project_create_payload() -> Dict[str, Any]:
     return {
         "name": "Project Name",
         "tags": ["my-tag"],
@@ -42,7 +42,7 @@ def project_create_payload():
     }
 
 
-def project_rows_create_payload():
+def project_rows_create_payload() -> List[Dict[str, Any]]:
     return [
         {
             "columns": [
@@ -60,23 +60,25 @@ def project_rows_create_payload():
 
 
 class ProjectsControllerTests(unittest.TestCase):
+    controller: ClassVar[ProjectsController]
+
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         super().setUpClass()
 
         cls.controller = ProjectsController(config=common_config)
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.created_projects: List[str] = []
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         for project_id in self.created_projects:
             try:
                 self.controller.remove(id=project_id)
             except ApiException:
                 print("Could not remove project with id:", project_id)
 
-    def create_project(self, *, payload: Optional[Dict[str, Any]] = None):
+    def create_project(self, *, payload: Optional[Dict[str, Any]] = None) -> ProjectDetail:
         if payload is None:
             payload = project_create_payload()
 
@@ -85,7 +87,7 @@ class ProjectsControllerTests(unittest.TestCase):
 
         return project
 
-    def test_creating_a_project_succeeds(self):
+    def test_creating_a_project_succeeds(self) -> None:
         project = self.create_project()
 
         self.assertIsInstance(project.id, str)
@@ -137,13 +139,13 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual("Age of the customer", customer_age.name)
         self.assertEqual("numerical", customer_age.type)
 
-    def test_retrieving_a_project_succeeds(self):
+    def test_retrieving_a_project_succeeds(self) -> None:
         project = self.create_project()
         retrieved = self.controller.retrieve(id=project.id)
 
         self.assertDictEqual(project.dict(), retrieved.dict())
 
-    def test_removing_a_project_succeeds(self):
+    def test_removing_a_project_succeeds(self) -> None:
         old_num_projects = self.controller.list(limit=1).count
         project = self.create_project()
         interim_num_projects = self.controller.list(limit=1).count
@@ -153,7 +155,7 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual(old_num_projects, new_num_projects)
         self.assertEqual(old_num_projects + 1, interim_num_projects)
 
-    def test_listing_all_projects_succeeds(self):
+    def test_listing_all_projects_succeeds(self) -> None:
         project = self.create_project()
         projects = self.controller.list(limit=1)
 
@@ -166,14 +168,14 @@ class ProjectsControllerTests(unittest.TestCase):
         project_dict.pop("columns")
         self.assertDictEqual(project_dict, retrieved.dict())
 
-    def test_filtering_projects_succeeds(self):
+    def test_filtering_projects_succeeds(self) -> None:
         filt = ProjectsFilter.language("tr")
         projects = self.controller.list(filter=filt)
 
         self.assertEqual(0, len(projects))
         self.assertEqual(0, projects.count)
 
-    def test_appending_multiple_rows_succeeds(self):
+    def test_appending_multiple_rows_succeeds(self) -> None:
         project = self.create_project()
         result = self.controller.append_rows(id=project.id, rows=project_rows_create_payload())
 
@@ -181,9 +183,9 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual(2, result.queued_rows_count)
         self.assertEqual(1.02, result.estimated_minutes)
 
-    def test_appending_single_row_succeeds(self):
+    def test_appending_single_row_succeeds(self) -> None:
         project = self.create_project()
-        columns = [
+        columns: List[Dict[str, Any]] = [
             {"ref": "customer_age", "value": None},
             {"ref": "our_strengths", "value": "Some other text."},
         ]
@@ -214,7 +216,7 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual("numerical", customer_age.type)
         self.assertEqual(None, customer_age.value)
 
-    def test_listing_all_rows_succeeds(self):
+    def test_listing_all_rows_succeeds(self) -> None:
         project = self.create_project()
         row1 = self.controller.append_row(
             id=project.id,
@@ -236,10 +238,10 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual(2, retrieved.count)
         self.assertEqual(2, len(retrieved))
 
-        retrieved = [row.dict() for row in retrieved]
-        self.assertListEqual(rows, retrieved)
+        retrieved_dict = [row.dict() for row in retrieved]
+        self.assertListEqual(rows, retrieved_dict)
 
-    def test_filtering_rows_succeeds(self):
+    def test_filtering_rows_succeeds(self) -> None:
         project = self.create_project()
         self.controller.append_row(
             id=project.id,
@@ -260,7 +262,7 @@ class ProjectsControllerTests(unittest.TestCase):
         no_results = self.controller.list_rows(id=project.id, filter=filt)
         self.assertEqual(0, no_results.count)
 
-    def test_retreiving_a_row_succeeds(self):
+    def test_retreiving_a_row_succeeds(self) -> None:
         project = self.create_project()
         row = self.controller.append_row(
             id=project.id,

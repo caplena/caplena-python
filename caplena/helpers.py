@@ -10,14 +10,14 @@ from caplena.version import __version__
 
 class Helpers:
     @staticmethod
-    def get_user_agent(identifier: str):
+    def get_user_agent(identifier: str) -> str:
         client_info = f"{identifier}/{__version__}"
         python_info = "python/{ver.major}.{ver.minor}.{ver.micro}".format(ver=sys.version_info)
         system_info = f"{platform.system()}/{platform.release()}"
         return " ".join([client_info, python_info, system_info])
 
     @staticmethod
-    def append_path(base_uri: str, path: str):
+    def append_path(base_uri: str, path: str) -> str:
         absolute_uri = base_uri
         if path:
             base_uri = base_uri if base_uri[-1] != "/" else base_uri[:-1]
@@ -34,12 +34,12 @@ class Helpers:
         return partial
 
     @staticmethod
-    def from_rfc3339_datetime(value: str):
+    def from_rfc3339_datetime(value: str) -> datetime:
         iso_8601 = value.replace("Z", "+00:00")
         return datetime.fromisoformat(iso_8601)
 
     @staticmethod
-    def to_rfc3339_datetime(dt: datetime):
+    def to_rfc3339_datetime(dt: datetime) -> str:
         rfc3339 = dt.strftime("%Y-%m-%dT%H:%M:%S.")
         rfc3339 += dt.strftime("%f")[:3]
 
@@ -51,7 +51,9 @@ class Helpers:
         return rfc3339 + tz
 
     @staticmethod
-    def build_qualified_uri(uri: str, *, path_params: Dict[str, str], query_params: Dict[str, str]):
+    def build_qualified_uri(
+        uri: str, *, path_params: Dict[str, str], query_params: Dict[str, str]
+    ) -> str:
         # constructing path parameters
         for param_key, param_value in path_params.items():
             uri = uri.replace("{" + param_key + "}", str(param_value))
@@ -75,7 +77,7 @@ class Helpers:
         return uri
 
     @staticmethod
-    def build_escaped_filter_str(value: str):
+    def build_escaped_filter_str(value: str) -> str:
         escaped = value.replace("\\", "\\\\")
         return re.sub(r"(:|,|;)", r"\\\1", escaped)
 

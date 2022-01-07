@@ -1,6 +1,6 @@
 import copy
 from datetime import datetime
-from typing import Any, ClassVar, Dict, List, Optional, TypeVar, Union
+from typing import Any, ClassVar, Dict, List, Optional, Type, TypeVar, Union
 
 from caplena.helpers import Helpers
 
@@ -23,7 +23,7 @@ class ApiFilter:
         self._constraints: Constraints = constraints if constraints is not None else {}
         self._has_conjunction = has_conjunction
 
-    def to_query_params(self):
+    def to_query_params(self) -> Dict[str, str]:
         query_params: Dict[str, str] = {}
         for query_param, clauses in self._constraints.items():
             stringified_clauses: List[str] = []
@@ -39,7 +39,7 @@ class ApiFilter:
             query_params[query_param] = ";".join(stringified_clauses)
         return query_params
 
-    def __str__(self):
+    def __str__(self) -> str:
         stringified_clauses: List[str] = []
         for name, clauses in self._constraints.items():
             for clause in clauses:
@@ -107,7 +107,7 @@ class ApiFilter:
         return type(self)(constraints=new_constraints, has_conjunction=has_conjunction)
 
     @classmethod
-    def construct(cls, *, name: str, filters: Dict[str, ZeroOrMany[Any]]):
+    def construct(cls: Type[U], *, name: str, filters: Dict[str, ZeroOrMany[Any]]) -> U:
         constraints: Constraints = {}
 
         clauses: List[Dict[str, List[Any]]] = []
@@ -124,7 +124,7 @@ class ApiFilter:
         return cls(constraints=constraints, has_conjunction=has_conjunction)
 
     @staticmethod
-    def to_list(*, values: ZeroOrMany[Any]):
+    def to_list(*, values: ZeroOrMany[Any]) -> Optional[List[Any]]:
         if values is None:
             return None
         elif isinstance(values, list) and len(values) > 0:

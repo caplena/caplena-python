@@ -10,11 +10,11 @@ from caplena.logging.logger import LoggingLevel
 
 class Client:
     @property
-    def projects(self):
+    def projects(self) -> ProjectsController:
         return self._projects_controller
 
     @property
-    def config(self):
+    def config(self) -> Configuration:
         return self._config
 
     def __init__(

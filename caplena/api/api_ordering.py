@@ -1,5 +1,5 @@
 import copy
-from typing import List, Optional, Tuple, TypeVar
+from typing import Dict, List, Optional, Tuple, Type, TypeVar
 
 from typing_extensions import Literal
 
@@ -16,7 +16,7 @@ class ApiOrdering:
         else:
             self._ordering = ordering
 
-    def to_query_params(self):
+    def to_query_params(self) -> Dict[str, str]:
         stringified_ordering: List[str] = []
         for (direction, name) in self._ordering:
             name = Helpers.build_escaped_filter_str(name)
@@ -24,11 +24,11 @@ class ApiOrdering:
         return {"order_by": ";".join(stringified_ordering)}
 
     @classmethod
-    def asc(cls, name: str):
+    def asc(cls: Type[T], name: str) -> T:
         return cls(ordering=[("asc", name)])
 
     @classmethod
-    def desc(cls, name: str):
+    def desc(cls: Type[T], name: str) -> T:
         return cls(ordering=[("desc", name)])
 
     def __and__(self: T, other: T) -> T:

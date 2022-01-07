@@ -50,7 +50,7 @@ class ApiRequestor:
         query_params: Optional[Dict[str, str]] = None,
         filter: Optional[ApiFilter] = None,
         order_by: Optional[ApiOrdering] = None,
-    ):
+    ) -> Dict[str, str]:
         new_query_params: Dict[str, str] = {}
 
         if filter is not None:
@@ -112,7 +112,7 @@ class ApiRequestor:
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
-    ):
+    ) -> HttpResponse:
         absolute_uri = self.build_uri(
             base_uri=base_uri,
             path=path,
@@ -148,7 +148,7 @@ class ApiRequestor:
         order_by: Optional[ApiOrdering] = None,
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
-    ):
+    ) -> HttpResponse:
         query_params = self.build_query_params(
             filter=filter, order_by=order_by, query_params=query_params
         )
@@ -179,7 +179,7 @@ class ApiRequestor:
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
-    ):
+    ) -> HttpResponse:
         return self.request_raw(
             base_uri=base_uri,
             path=path,
@@ -207,7 +207,7 @@ class ApiRequestor:
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
-    ):
+    ) -> HttpResponse:
         return self.request_raw(
             base_uri=base_uri,
             path=path,
@@ -235,7 +235,7 @@ class ApiRequestor:
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
-    ):
+    ) -> HttpResponse:
         return self.request_raw(
             base_uri=base_uri,
             path=path,
@@ -262,7 +262,7 @@ class ApiRequestor:
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
-    ):
+    ) -> HttpResponse:
         return self.request_raw(
             base_uri=base_uri,
             path=path,

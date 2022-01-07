@@ -10,7 +10,7 @@ class ProjectsFilter(ApiFilter):
         *,
         exact__i: ZeroOrMany[str] = None,
         contains__i: ZeroOrMany[str] = None,
-    ):
+    ) -> "ProjectsFilter":
         return cls.construct(
             name="name",
             filters={
@@ -26,7 +26,7 @@ class ProjectsFilter(ApiFilter):
         id: ZeroOrMany[str],
         email__exact__i: ZeroOrMany[str],
         email__contains__i: ZeroOrMany[str],
-    ):
+    ) -> "ProjectsFilter":
         return cls.construct(
             name="owner",
             filters={
@@ -37,7 +37,7 @@ class ProjectsFilter(ApiFilter):
         )
 
     @classmethod
-    def tags(cls, tag: ZeroOrMany[str]):
+    def tags(cls, tag: ZeroOrMany[str]) -> "ProjectsFilter":
         return cls.construct(
             name="tags",
             filters={
@@ -46,7 +46,7 @@ class ProjectsFilter(ApiFilter):
         )
 
     @classmethod
-    def upload_status(cls, upload_status: ZeroOrMany[str]):
+    def upload_status(cls, upload_status: ZeroOrMany[str]) -> "ProjectsFilter":
         return cls.construct(
             name="upload_status",
             filters={
@@ -55,7 +55,7 @@ class ProjectsFilter(ApiFilter):
         )
 
     @classmethod
-    def language(cls, language: ZeroOrMany[str]):
+    def language(cls, language: ZeroOrMany[str]) -> "ProjectsFilter":
         return cls.construct(
             name="language",
             filters={
@@ -64,7 +64,7 @@ class ProjectsFilter(ApiFilter):
         )
 
     @classmethod
-    def translation_status(cls, translation_status: ZeroOrMany[str]):
+    def translation_status(cls, translation_status: ZeroOrMany[str]) -> "ProjectsFilter":
         return cls.construct(
             name="translation_status",
             filters={
@@ -73,7 +73,7 @@ class ProjectsFilter(ApiFilter):
         )
 
     @classmethod
-    def translation_engine(cls, translation_engine: ZeroOrMany[str]):
+    def translation_engine(cls, translation_engine: ZeroOrMany[str]) -> "ProjectsFilter":
         return cls.construct(
             name="translation_engine",
             filters={
@@ -104,7 +104,7 @@ class ProjectsFilter(ApiFilter):
         day__gt: ZeroOrMany[int] = None,
         day__lte: ZeroOrMany[int] = None,
         day__lt: ZeroOrMany[int] = None,
-    ):
+    ) -> "ProjectsFilter":
         return cls.construct(
             name="created",
             filters={
@@ -153,7 +153,7 @@ class ProjectsFilter(ApiFilter):
         day__gt: ZeroOrMany[int] = None,
         day__lte: ZeroOrMany[int] = None,
         day__lt: ZeroOrMany[int] = None,
-    ):
+    ) -> "ProjectsFilter":
         return cls.construct(
             name="last_modified",
             filters={
@@ -191,7 +191,7 @@ class RowsFilter(ApiFilter):
             gt: ZeroOrMany[float] = None,
             lte: ZeroOrMany[float] = None,
             lt: ZeroOrMany[float] = None,
-        ):
+        ) -> "RowsFilter":
             return RowsFilter.construct(
                 name="columns",
                 filters={
@@ -209,7 +209,7 @@ class RowsFilter(ApiFilter):
             *,
             ref: str,
             exact: ZeroOrMany[bool] = None,
-        ):
+        ) -> "RowsFilter":
             return RowsFilter.construct(
                 name="columns",
                 filters={
@@ -224,7 +224,7 @@ class RowsFilter(ApiFilter):
             ref: str,
             exact__i: ZeroOrMany[str] = None,
             contains__i: ZeroOrMany[str] = None,
-        ):
+        ) -> "RowsFilter":
             return RowsFilter.construct(
                 name="columns",
                 filters={
@@ -244,7 +244,7 @@ class RowsFilter(ApiFilter):
             source_language: ZeroOrMany[str] = None,
             translated_value__exact__i: ZeroOrMany[str] = None,
             translated_value__contains__i: ZeroOrMany[str] = None,
-        ):
+        ) -> "RowsFilter":
             return RowsFilter.construct(
                 name="columns",
                 filters={
@@ -280,7 +280,7 @@ class RowsFilter(ApiFilter):
         day__gt: ZeroOrMany[int] = None,
         day__lte: ZeroOrMany[int] = None,
         day__lt: ZeroOrMany[int] = None,
-    ):
+    ) -> "RowsFilter":
         return cls.construct(
             name="created",
             filters={
@@ -329,7 +329,7 @@ class RowsFilter(ApiFilter):
         day__gt: ZeroOrMany[int] = None,
         day__lte: ZeroOrMany[int] = None,
         day__lt: ZeroOrMany[int] = None,
-    ):
+    ) -> "RowsFilter":
         return cls.construct(
             name="last_modified",
             filters={

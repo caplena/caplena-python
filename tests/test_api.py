@@ -1,10 +1,12 @@
 import unittest
 from datetime import datetime, timezone
-from typing import Any, List, Tuple
+from typing import Any, ClassVar, List, Tuple
 
 from caplena.api import ApiBaseUri, ApiFilter, ApiRequestor, ApiVersion, ZeroOrMany
+from caplena.http.http_client import HttpClient
 from caplena.http.requests_http_client import RequestsHttpClient
 from caplena.logging.default_logger import DefaultLogger
+from caplena.logging.logger import Logger
 
 
 class Pf(ApiFilter):
@@ -17,7 +19,7 @@ class Pf(ApiFilter):
         year__lt: ZeroOrMany[int] = None,
         month: ZeroOrMany[int] = None,
         day: ZeroOrMany[int] = None,
-    ):
+    ) -> "Pf":
         return cls.construct(
             name="created",
             filters={
@@ -39,7 +41,7 @@ class Pf(ApiFilter):
         year__lt: ZeroOrMany[int] = None,
         month: ZeroOrMany[int] = None,
         day: ZeroOrMany[int] = None,
-    ):
+    ) -> "Pf":
         return cls.construct(
             name="last_modified",
             filters={
@@ -53,7 +55,7 @@ class Pf(ApiFilter):
         )
 
     @classmethod
-    def tags(cls, tag: ZeroOrMany[str]):
+    def tags(cls, tag: ZeroOrMany[str]) -> "Pf":
         return cls.construct(
             name="tags",
             filters={
@@ -63,17 +65,21 @@ class Pf(ApiFilter):
 
 
 class ApiVersionTests(unittest.TestCase):
-    def test_api_version_string_for_default_fails(self):
+    def test_api_version_string_for_default_fails(self) -> None:
         with self.assertRaisesRegex(
             ValueError, "Cannot convert `DEFAULT` to a valid version string."
         ):
             ApiVersion.DEFAULT.version
 
-    def test_api_version_string_succeeds(self):
+    def test_api_version_string_succeeds(self) -> None:
         self.assertEqual("2022-01-01", ApiVersion.VER_2022_01_01.version)
 
 
 class ApiRequestorTests(unittest.TestCase):
+    http_client: ClassVar[HttpClient]
+    logger: ClassVar[Logger]
+    api_requestor: ClassVar[ApiRequestor]
+
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -85,7 +91,7 @@ class ApiRequestorTests(unittest.TestCase):
         self,
         expected: List[str],
         actual: List[Tuple[Any, str, Any, Any]],
-    ):
+    ) -> None:
         results = [
             self.api_requestor.build_uri(
                 base_uri=a[0],
@@ -97,7 +103,7 @@ class ApiRequestorTests(unittest.TestCase):
         ]
         self.assertListEqual(expected, results)
 
-    def test_building_absolute_uri_fails(self):
+    def test_building_absolute_uri_fails(self) -> None:
         with self.assertRaisesRegex(
             ValueError, "Path requires `hello` parameter, but none is given."
         ):
@@ -120,7 +126,7 @@ class ApiRequestorTests(unittest.TestCase):
         ):
             self.api_requestor.build_uri(base_uri="https://abc.xyz/", path="/{}", path_params=None)
 
-    def test_building_absolute_uri_from_api_base_succeeds(self):
+    def test_building_absolute_uri_from_api_base_succeeds(self) -> None:
         absolute_uris = [
             (ApiBaseUri.LOCAL, "", None, None),
             (ApiBaseUri.LOCAL, "/{id}", {"id": "12"}, None),
@@ -141,7 +147,7 @@ class ApiRequestorTests(unittest.TestCase):
 
         self.assertAbsoluteUriListEqual(expected, absolute_uris)
 
-    def test_building_absolute_uri_from_string_succeeds(self):
+    def test_building_absolute_uri_from_string_succeeds(self) -> None:
         absolute_uris = [
             ("http://abc.de", "", None, None),
             ("https://abc.xyz", "/{id}", {"id": "some_param"}, None),
@@ -167,7 +173,7 @@ class ApiRequestorTests(unittest.TestCase):
 
         self.assertAbsoluteUriListEqual(expected, absolute_uris)
 
-    def test_building_absolute_uri_from_path_parameters_succeeds(self):
+    def test_building_absolute_uri_from_path_parameters_succeeds(self) -> None:
         absolute_uris = [
             ("https://abc.xyz", "/hello/there/", None, None),
             ("https://abc.xyz", "{param}/hello/there/", {"param": "good_param"}, None),
@@ -183,7 +189,7 @@ class ApiRequestorTests(unittest.TestCase):
 
         self.assertAbsoluteUriListEqual(expected, absolute_uris)
 
-    def test_building_absolute_uri_from_query_parameters_succeeds(self):
+    def test_building_absolute_uri_from_query_parameters_succeeds(self) -> None:
         absolute_uris = [
             ("https://abc.xyz", "/hello/there/", None, None),
             (
@@ -206,7 +212,7 @@ class ApiRequestorTests(unittest.TestCase):
 
 
 class ApiFilterTests(unittest.TestCase):
-    def test_constructing_filter_succeeds(self):
+    def test_constructing_filter_succeeds(self) -> None:
         filters = [
             Pf(),
             Pf.created(),
@@ -220,7 +226,7 @@ class ApiFilterTests(unittest.TestCase):
 
         self.assertListEqual(expected, [str(filt) for filt in filters])
 
-    def test_or_filter_fails(self):
+    def test_or_filter_fails(self) -> None:
         with self.assertRaisesRegex(ValueError, "disjunction of already conjuncted filters"):
             (Pf.created(year__lt=[2000, 1990]) & Pf.created(month=20)) | Pf.created(month=1)
 
@@ -230,7 +236,7 @@ class ApiFilterTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "as there is already a different filter"):
             Pf.created(year__lt=[2000, 1990]) | Pf.last_modified(day=20)
 
-    def test_or_filter_succeeds(self):
+    def test_or_filter_succeeds(self) -> None:
         filters = [
             Pf.created(year__gt=2020) | Pf(),
             Pf() | Pf.created(year__gt=[10, 20], year__lt=[20]),
@@ -248,7 +254,7 @@ class ApiFilterTests(unittest.TestCase):
 
         self.assertListEqual(expected, [str(filt) for filt in filters])
 
-    def test_and_filter_succeeds(self):
+    def test_and_filter_succeeds(self) -> None:
         filters = [
             Pf.created(year__gt=2020) & Pf(),
             Pf() & Pf.created(year__gt=[10, 20], year__lt=[20]),
@@ -271,7 +277,7 @@ class ApiFilterTests(unittest.TestCase):
 
         self.assertListEqual(expected, [str(filt) for filt in filters])
 
-    def test_default_filter_succeeds(self):
+    def test_default_filter_succeeds(self) -> None:
         filters = [
             Pf.tags("one-tag"),
             Pf.tags(["one-tag", "other-tag"]),
@@ -287,7 +293,7 @@ class ApiFilterTests(unittest.TestCase):
 
 
 class ApiFilterQueryParamTests(unittest.TestCase):
-    def test_encoding_query_parameters_succeeds(self):
+    def test_encoding_query_parameters_succeeds(self) -> None:
         filters = [
             Pf.created(year=[2020, 2021, 2022], year__gt=[20, 30, 40], day=[10, 20, 30])
             & (Pf.tags("a") | Pf.tags("b") | Pf.tags("c")),  # noqa: W503
@@ -313,7 +319,7 @@ class ApiFilterQueryParamTests(unittest.TestCase):
 
         self.assertListEqual(expected, [filt.to_query_params() for filt in filters])
 
-    def test_encoding_datetime_succeeds(self):
+    def test_encoding_datetime_succeeds(self) -> None:
         filt = Pf.last_modified(
             gte=[
                 datetime(2022, 1, 1, tzinfo=timezone.utc),
@@ -328,7 +334,7 @@ class ApiFilterQueryParamTests(unittest.TestCase):
 
         self.assertEqual(expected, filt.to_query_params())
 
-    def test_escaping_special_characters_succeeds(self):
+    def test_escaping_special_characters_succeeds(self) -> None:
         filt = (
             Pf.tags("abc cdef \\ \n ghj xyz") | Pf.tags("th:is;is;just,a,ve:ry;lo:ng;tag")
         ) & Pf.tags("just\\some\\\nmany\\\\\\backslashes\\n")

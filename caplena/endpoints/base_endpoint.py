@@ -8,17 +8,20 @@ from typing import (
     List,
     Optional,
     Set,
+    Tuple,
     Type,
     TypeVar,
     Union,
 )
 
 from caplena.api import ApiFilter, ApiOrdering
+from caplena.api.api_requestor import ApiRequestor
 from caplena.configuration import Configuration
 from caplena.helpers import Helpers
 from caplena.http.http_response import HttpResponse
 from caplena.iterator import Iterator
 
+OBO = TypeVar("OBO", bound="BaseObject[Any]")
 BO = TypeVar("BO", bound="BaseObject[Any]")
 BC = TypeVar("BC", bound="BaseController")
 T = TypeVar("T")
@@ -30,11 +33,11 @@ class BaseController:
     DEFAULT_ALLOWED_DELETE_CODES: ClassVar[Iterable[int]] = frozenset({204})
 
     @property
-    def config(self):
+    def config(self) -> Configuration:
         return self._config
 
     @property
-    def api(self):
+    def api(self) -> ApiRequestor:
         return self._config.api_requestor
 
     def __init__(self, *, config: Configuration):
@@ -49,7 +52,7 @@ class BaseController:
         query_params: Optional[Dict[str, str]] = None,
         filter: Optional[ApiFilter] = None,
         order_by: Optional[ApiOrdering] = None,
-    ):
+    ) -> HttpResponse:
         response = self._config.api_requestor.get(
             base_uri=self._config.api_base_uri,
             path=path,
@@ -73,7 +76,7 @@ class BaseController:
         path_params: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, str]] = None,
         json: Optional[Union[Dict[str, Any], List[Any]]] = None,
-    ):
+    ) -> HttpResponse:
         response = self._config.api_requestor.post(
             base_uri=self._config.api_base_uri,
             path=path,
@@ -96,7 +99,7 @@ class BaseController:
         path_params: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, str]] = None,
         json: Optional[Union[Dict[str, Any], List[Any]]] = None,
-    ):
+    ) -> HttpResponse:
         response = self._config.api_requestor.put(
             base_uri=self._config.api_base_uri,
             path=path,
@@ -119,7 +122,7 @@ class BaseController:
         path_params: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, str]] = None,
         json: Optional[Union[Dict[str, Any], List[Any]]] = None,
-    ):
+    ) -> HttpResponse:
         response = self._config.api_requestor.patch(
             base_uri=self._config.api_base_uri,
             path=path,
@@ -141,7 +144,7 @@ class BaseController:
         allowed_codes: Iterable[int] = DEFAULT_ALLOWED_DELETE_CODES,
         path_params: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, str]] = None,
-    ):
+    ) -> HttpResponse:
         response = self._config.api_requestor.delete(
             base_uri=self._config.api_base_uri,
             path=path,
@@ -166,7 +169,7 @@ class BaseController:
         limit: int,
         resource: Type[BO],
     ) -> Iterator[BO]:
-        def results_fetcher(page: int):
+        def results_fetcher(page: int) -> Tuple[List[BO], bool, int]:
             response = fetcher(page)
             json = self._retrieve_json_or_raise(response)
 
@@ -178,7 +181,7 @@ class BaseController:
             limit=limit,
         )
 
-    def _retrieve_json_or_raise(self, response: HttpResponse):
+    def _retrieve_json_or_raise(self, response: HttpResponse) -> Dict[str, Any]:
         json = response.json
         if json is None:
             raise self.api.build_exc(response)
@@ -195,7 +198,7 @@ class BaseObject(Generic[BC]):
     _controller: Optional[BC]
 
     @property
-    def controller(self):
+    def controller(self) -> BC:
         if self._controller is None:
             raise ValueError(
                 "You cannot access the non-existing controller for this object. HINT: This object either "
@@ -204,25 +207,25 @@ class BaseObject(Generic[BC]):
             )
         return self._controller
 
-    def __init__(self, **attrs: Any):
-        self._controller = None
-
-        self.refresh_from(attrs=attrs)
-
     @controller.setter
-    def controller(self, value: BC):
+    def controller(self, value: BC) -> None:
         self._controller = value
 
         for field in self.__fields__:
             self._recursive_controller_set(self._attrs[field], value=value)
 
-    def _recursive_controller_set(self, attr: Any, *, value: BC):
+    def __init__(self, **attrs: Any):
+        self._controller = None
+
+        self.refresh_from(attrs=attrs)
+
+    def _recursive_controller_set(self, attr: Any, *, value: BC) -> None:
         if isinstance(attr, BaseObject):
             self._controller = value
         elif isinstance(attr, list):
             [self._recursive_controller_set(i, value=value) for i in attr]  # type: ignore
 
-    def refresh_from(self, *, attrs: Dict[str, Any]):
+    def refresh_from(self, *, attrs: Dict[str, Any]) -> None:
         # pick only allowed attributes
         partial = Helpers.partial_dict(attrs, self.__fields__)
         validated = partial
@@ -242,11 +245,13 @@ class BaseObject(Generic[BC]):
         if isinstance(attr, BaseObject):
             return attr.dict()
         elif isinstance(attr, list):
-            return [self._recursive_dict(i) for i in attr]  # type: ignore
+            return [
+                self._recursive_dict(i) for i in attr
+            ]  # pyright: reportUnknownVariableType=false
         else:
             return attr
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}()"
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -270,26 +275,26 @@ class BaseObject(Generic[BC]):
         raise ValueError(f"{name}. HINT: You cannot delete any attributes.")
 
     @classmethod
-    def build_obj(cls, obj: Dict[str, Any], *, controller: Optional[BC]):
+    def build_obj(cls: Type[BO], obj: Dict[str, Any], *, controller: Optional[BC]) -> BO:
         instance = cls.parse_obj(obj)
         instance.controller = controller
         return instance
 
     @classmethod
-    def parse_obj(cls: Type[T], obj: Dict[str, Any]) -> T:
+    def parse_obj(cls: Type[BO], obj: Dict[str, Any]) -> BO:
         return cls(**obj)
 
 
 class BaseResource(BaseObject[BC]):
     @property
-    def id(self):
+    def id(self) -> str:
         return self._id
 
     def __init__(self, id: str, **attrs: Any):
         super().__init__(**attrs)
         self._id = id
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}(id={self._id})"
 
     def dict(self) -> Dict[str, Any]:

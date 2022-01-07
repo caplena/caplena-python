@@ -7,6 +7,8 @@ from caplena.api import ApiOrdering
 from caplena.endpoints.base_endpoint import BaseController, BaseObject, BaseResource
 from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
 from caplena.helpers import Helpers
+from caplena.http.http_response import HttpResponse
+from caplena.iterator import Iterator
 
 # --- Controller --- #
 
@@ -20,7 +22,7 @@ class ProjectsController(BaseController):
         columns: List[Dict[str, Any]],
         tags: Optional[List[str]] = None,
         translation_engine: Optional[str] = None,
-    ):
+    ) -> "ProjectDetail":
         json = self.api.build_payload(
             name=name,
             language=language,
@@ -32,11 +34,11 @@ class ProjectsController(BaseController):
         response = self.post(path="/projects", json=json)
         return self.build_response(response, resource=ProjectDetail)
 
-    def retrieve(self, *, id: str):
+    def retrieve(self, *, id: str) -> "ProjectDetail":
         response = self.get(path="/projects/{id}", path_params={"id": id})
         return self.build_response(response, resource=ProjectDetail)
 
-    def remove(self, *, id: str):
+    def remove(self, *, id: str) -> None:
         self.delete(path="/projects/{id}", path_params={"id": id})
 
     def list(
@@ -45,8 +47,8 @@ class ProjectsController(BaseController):
         limit: int = 10,
         filter: Optional[ProjectsFilter] = None,
         order_by: ApiOrdering = ApiOrdering.desc("last_modified"),
-    ):
-        def fetcher(page: int):
+    ) -> "Iterator[ProjectList]":
+        def fetcher(page: int) -> HttpResponse:
             return self.get(
                 path="/projects",
                 query_params={
@@ -64,7 +66,7 @@ class ProjectsController(BaseController):
         *,
         id: str,
         rows: List[Dict[str, Any]],
-    ):
+    ) -> "RowsAppend":
         response = self.post(
             path="/projects/{id}/rows/bulk",
             path_params={"id": id},
@@ -79,7 +81,7 @@ class ProjectsController(BaseController):
         *,
         id: str,
         columns: List[Dict[str, Any]],
-    ):
+    ) -> "Row":
         json = self.api.build_payload(columns=columns)
         response = self.post(
             path="/projects/{id}/rows",
@@ -95,8 +97,8 @@ class ProjectsController(BaseController):
         id: str,
         limit: int = 10,
         filter: Optional[RowsFilter] = None,
-    ):
-        def fetcher(page: int):
+    ) -> "Iterator[Row]":
+        def fetcher(page: int) -> HttpResponse:
             return self.get(
                 path="/projects/{id}/rows",
                 path_params={"id": id},
@@ -109,7 +111,7 @@ class ProjectsController(BaseController):
 
         return self.build_iterator(fetcher=fetcher, limit=limit, resource=Row)
 
-    def retrieve_row(self, *, p_id: str, r_id: str):
+    def retrieve_row(self, *, p_id: str, r_id: str) -> "Row":
         response = self.get(
             path="/projects/{p_id}/rows/{r_id}",
             path_params={"p_id": p_id, "r_id": r_id},
@@ -157,7 +159,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
             sentiment_positive: Sentiment
 
             @classmethod
-            def parse_obj(cls, obj: Dict[str, Any]):
+            def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail.TextToAnalyze.Topic":
                 obj["sentiment_neutral"] = cls.Sentiment.parse_obj(obj["sentiment_neutral"])
                 obj["sentiment_negative"] = cls.Sentiment.parse_obj(obj["sentiment_negative"])
                 obj["sentiment_positive"] = cls.Sentiment.parse_obj(obj["sentiment_positive"])
@@ -177,7 +179,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         metadata: Metadata
 
         @classmethod
-        def parse_obj(cls, obj: Dict[str, Any]):
+        def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail.TextToAnalyze":
             obj["topics"] = [cls.Topic.parse_obj(topic) for topic in obj["topics"]]
             obj["metadata"] = cls.Metadata.parse_obj(obj["metadata"])
             return super().parse_obj(obj)
@@ -213,24 +215,24 @@ class ProjectDetail(BaseResource[ProjectsController]):
     translation_status: Optional[str]
     translation_engine: Optional[str]
 
-    def remove(self):
+    def remove(self) -> None:
         self.controller.remove(id=self.id)
 
-    def append_row(self, *, columns: List[Dict[str, Any]]):
+    def append_row(self, *, columns: List[Dict[str, Any]]) -> "Row":
         return self.controller.append_row(id=self.id, columns=columns)
 
-    def append_rows(self, *, rows: List[Dict[str, Any]]):
+    def append_rows(self, *, rows: List[Dict[str, Any]]) -> "RowsAppend":
         return self.controller.append_rows(id=self.id, rows=rows)
 
-    def retrieve_row(self, *, id: str):
+    def retrieve_row(self, *, id: str) -> "Row":
         return self.controller.retrieve_row(p_id=self.id, r_id=id)
 
-    def refresh(self):
+    def refresh(self) -> None:
         project = self.controller.retrieve(id=self.id)
         self.refresh_from(attrs=project._attrs)
 
     @classmethod
-    def parse_obj(cls, obj: Dict[str, Any]):
+    def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail":
         obj["columns"] = [
             cls.TextToAnalyze.parse_obj(column)
             if column["type"] == "text_to_analyze"
@@ -270,24 +272,24 @@ class ProjectList(BaseResource[ProjectsController]):
     translation_status: Optional[str]
     translation_engine: Optional[str]
 
-    def remove(self):
+    def remove(self) -> None:
         self.controller.remove(id=self.id)
 
-    def append_row(self, *, columns: List[Dict[str, Any]]):
+    def append_row(self, *, columns: List[Dict[str, Any]]) -> "Row":
         return self.controller.append_row(id=self.id, columns=columns)
 
-    def append_rows(self, *, rows: List[Dict[str, Any]]):
+    def append_rows(self, *, rows: List[Dict[str, Any]]) -> "RowsAppend":
         return self.controller.append_rows(id=self.id, rows=rows)
 
-    def retrieve_row(self, *, id: str):
+    def retrieve_row(self, *, id: str) -> "Row":
         return self.controller.retrieve_row(p_id=self.id, r_id=id)
 
-    def refresh(self):
+    def refresh(self) -> None:
         project = self.controller.retrieve(id=self.id)
         self.refresh_from(attrs=project._attrs)
 
     @classmethod
-    def parse_obj(cls, obj: Dict[str, Any]):
+    def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectList":
         obj["created"] = Helpers.from_rfc3339_datetime(obj["created"])
         obj["last_modified"] = Helpers.from_rfc3339_datetime(obj["last_modified"])
 
@@ -366,7 +368,7 @@ class Row(BaseResource[ProjectsController]):
         topics: List[Topic]
 
         @classmethod
-        def parse_obj(cls, obj: Dict[str, Any]):
+        def parse_obj(cls, obj: Dict[str, Any]) -> "Row.TextToAnalyzeColumn":
             obj["topics"] = [cls.Topic.parse_obj(topic) for topic in obj["topics"]]
             return super().parse_obj(obj)
 
@@ -377,7 +379,7 @@ class Row(BaseResource[ProjectsController]):
     columns: List[Column]
 
     @classmethod
-    def parse_obj(cls, obj: Dict[str, Any]):
+    def parse_obj(cls, obj: Dict[str, Any]) -> "Row":
         type_to_column = {
             "numerical": cls.NumericalColumn,
             "boolean": cls.BooleanColumn,

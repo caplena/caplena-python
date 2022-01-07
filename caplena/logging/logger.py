@@ -14,11 +14,11 @@ class LoggingLevel(Enum):
 
 class Logger:
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def loggin_level(self):
+    def logging_level(self) -> LoggingLevel:
         return self._logging_level
 
     def __init__(self, name: str, logging_level: LoggingLevel = LoggingLevel.WARNING):
@@ -28,14 +28,14 @@ class Logger:
     def log(self, msg: str, *, level: LoggingLevel, **extra: str) -> None:
         raise NotImplementedError("Logger subclasses must implement `log`.")
 
-    def debug(self, msg: str, **extra: str):
+    def debug(self, msg: str, **extra: str) -> None:
         self.log(msg, level=LoggingLevel.DEBUG, **extra)
 
-    def info(self, msg: str, **extra: str):
+    def info(self, msg: str, **extra: str) -> None:
         self.log(msg, level=LoggingLevel.INFO, **extra)
 
-    def warning(self, msg: str, **extra: str):
+    def warning(self, msg: str, **extra: str) -> None:
         self.log(msg, level=LoggingLevel.WARNING, **extra)
 
-    def error(self, msg: str, **extra: str):
+    def error(self, msg: str, **extra: str) -> None:
         self.log(msg, level=LoggingLevel.ERROR, **extra)

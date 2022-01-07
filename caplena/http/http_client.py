@@ -18,7 +18,7 @@ class HttpMethod(Enum):
     def method(self) -> str:
         return self.name.lower()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
@@ -99,8 +99,8 @@ class HttpClient:
     ) -> HttpResponse:
         raise NotImplementedError("HttpClient subclasses must implement `request_raw`.")
 
-    def get_timeout(self, timeout: Optional[int] = None):
+    def get_timeout(self, timeout: Optional[int] = None) -> int:
         return timeout if timeout is not None else self.timeout
 
-    def get_retry(self, retry: Optional[HttpRetry] = None):
+    def get_retry(self, retry: Optional[HttpRetry] = None) -> HttpRetry:
         return retry if retry is not None else self.retry

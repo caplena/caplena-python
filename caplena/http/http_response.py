@@ -3,6 +3,8 @@ from typing import Any, Dict, Optional
 
 
 class HttpResponse:
+    _json: Optional[Dict[str, Any]]
+
     @property
     def json(self) -> Optional[Dict[str, Any]]:
         if hasattr(self, "_json"):
@@ -26,7 +28,7 @@ class HttpResponse:
         self.text = text
         self.headers = headers
 
-    def __str__(self):
+    def __str__(self) -> str:
         concat_text = (
             self.text[:50] + "..." if self.text and len(self.text) > 50 else str(self.text)
         )
