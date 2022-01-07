@@ -4,18 +4,59 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "caplena"
-authors = [{name = "Caplena", email = "support@caplena.com"}, {name = "Nico Haenggi", email = "nico@caplena.com"}]
-maintainers = [{name = "Caplena", email = "support@caplena.com"}, {name = "Nico Haenggi", email = "nico@caplena.com"}]
+version = "0.0.2"
+authors = [{name = "Caplena", email = "support@caplena.com"}]
+maintainers = [{name = "Nico Haenggi", email = "nico@caplena.com"}]
+keywords = ["caplena", "api", "nlp", "market research"]
 readme = "README.md"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Typing :: Typed",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Topic :: Internet",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
 license = {file = "LICENSE"}
-classifiers = ["License :: OSI Approved :: MIT License"]
 requires-python = ">=3.7"
-dynamic = ["version", "description"]
+dynamic = ["description"]
+dependencies = [
+    "requests >=2.26.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-watch",
+]
+doc = [
+    "sphinx",
+]
+dev = [
+    "isort",
+    "black",
+    "flake8",
+    "pyright",
+    "pre-commit",
+    "mypy",
+    "types-requests",
+]
 
 [project.urls]
+Homepage = "https://caplena.com"
+"Source Code" = "https://github.com/caplena/caplena-python"
 Documentation = "https://developers.caplena.com/ZG9jOjI4OTQwODQ3-client-libraries"
-Reference = "https://github.com/caplena/caplena-python"
-Source = "https://github.com/caplena/caplena-python"
+"API Reference" = "https://developers.caplena.com/sdk/python"
+"Bug Tracker" = "https://github.com/caplena/caplena-python/issues"
 
 [tool.black]
 line-length = 100

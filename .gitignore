@@ -18,6 +18,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Dist
+dist/
+
 # Work in Progress
 wip/
 
