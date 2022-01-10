@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "caplena"
-version = "0.0.2"
+version = "0.0.1"
 authors = [{name = "Caplena", email = "support@caplena.com"}]
 maintainers = [{name = "Nico Haenggi", email = "nico@caplena.com"}]
 keywords = ["caplena", "api", "nlp", "market research"]
@@ -40,6 +40,7 @@ test = [
 ]
 doc = [
     "sphinx",
+    "furo",
 ]
 dev = [
     "isort",
@@ -54,9 +55,9 @@ dev = [
 [project.urls]
 Homepage = "https://caplena.com"
 "Source Code" = "https://github.com/caplena/caplena-python"
-Documentation = "https://developers.caplena.com/ZG9jOjI4OTQwODQ3-client-libraries"
 "API Reference" = "https://developers.caplena.com/sdk/python"
 "Bug Tracker" = "https://github.com/caplena/caplena-python/issues"
+Documentation = "https://developers.caplena.com"
 
 [tool.black]
 line-length = 100
