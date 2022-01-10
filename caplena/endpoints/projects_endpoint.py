@@ -128,7 +128,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
         ref: str
         name: str
-        type: Literal["numerical", "boolean", "text", "any", "text_to_analyze"]
+        type: Literal["numerical", "boolean", "text", "date", "any", "text_to_analyze"]
 
     class TextToAnalyze(Column):
         class Topic(BaseResource[ProjectsController]):
@@ -185,7 +185,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
             return super().parse_obj(obj)
 
     class Auxiliary(Column):
-        type: Literal["numerical", "boolean", "text", "any"]
+        type: Literal["numerical", "boolean", "text", "date", "any"]
 
     __fields__ = {
         "name",
@@ -223,6 +223,14 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
     def append_rows(self, *, rows: List[Dict[str, Any]]) -> "RowsAppend":
         return self.controller.append_rows(id=self.id, rows=rows)
+
+    def list_rows(
+        self,
+        *,
+        limit: int = 10,
+        filter: Optional[RowsFilter] = None,
+    ) -> "Iterator[Row]":
+        return self.controller.list_rows(id=self.id, limit=limit, filter=filter)
 
     def retrieve_row(self, *, id: str) -> "Row":
         return self.controller.retrieve_row(p_id=self.id, r_id=id)
@@ -281,6 +289,14 @@ class ProjectList(BaseResource[ProjectsController]):
     def append_rows(self, *, rows: List[Dict[str, Any]]) -> "RowsAppend":
         return self.controller.append_rows(id=self.id, rows=rows)
 
+    def list_rows(
+        self,
+        *,
+        limit: int = 10,
+        filter: Optional[RowsFilter] = None,
+    ) -> "Iterator[Row]":
+        return self.controller.list_rows(id=self.id, limit=limit, filter=filter)
+
     def retrieve_row(self, *, id: str) -> "Row":
         return self.controller.retrieve_row(p_id=self.id, r_id=id)
 
@@ -309,8 +325,8 @@ class Row(BaseResource[ProjectsController]):
         __fields__ = {"ref", "type", "value"}
 
         ref: str
-        type: Literal["numerical", "boolean", "text", "any", "text_to_analyze"]
-        value: Union[float, bool, None, str]
+        type: Literal["numerical", "boolean", "text", "date", "any", "text_to_analyze"]
+        value: Union[float, bool, None, str, datetime]
 
     class NumericalColumn(Column):
         type: Literal["numerical"]
@@ -319,6 +335,17 @@ class Row(BaseResource[ProjectsController]):
     class BooleanColumn(Column):
         type: Literal["boolean"]
         value: Optional[bool]
+
+    class DateColumn(Column):
+        type: Literal["date"]
+        value: Optional[datetime]
+
+        @classmethod
+        def parse_obj(cls, obj: Dict[str, Any]) -> "Row.DateColumn":
+            if obj["value"] is not None:
+                obj["value"] = Helpers.from_rfc3339_datetime(obj["value"])
+
+            return super().parse_obj(obj)
 
     class AnyColumn(Column):
         type: Literal["any"]
@@ -383,6 +410,7 @@ class Row(BaseResource[ProjectsController]):
         type_to_column = {
             "numerical": cls.NumericalColumn,
             "boolean": cls.BooleanColumn,
+            "date": cls.DateColumn,
             "any": cls.AnyColumn,
             "text": cls.TextColumn,
             "text_to_analyze": cls.TextToAnalyzeColumn,
