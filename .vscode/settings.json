@@ -12,5 +12,7 @@
   "python.linting.enabled": true,
   "python.linting.flake8Enabled": true,
   "python.linting.mypyEnabled": true,
-  "python.linting.mypyCategorySeverity.error": "Warning"
+  "python.linting.mypyCategorySeverity.error": "Warning",
+  "autoDocstring.docstringFormat": "sphinx",
+  "autoDocstring.guessTypes": false
 }

@@ -25,7 +25,7 @@ dist/
 wip/
 
 # Documentation
-docs/
+docs/build/
 
 # Visual Studio Code
 .vscode/*
