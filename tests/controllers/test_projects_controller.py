@@ -3,8 +3,9 @@ from datetime import datetime
 from typing import Any, ClassVar, Dict, List, Optional, cast
 
 from caplena.api.api_exception import ApiException
-from caplena.endpoints.projects_endpoint import ProjectDetail, ProjectsController, Row
+from caplena.controllers import ProjectsController
 from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
+from caplena.resources import ProjectDetail, Row
 from tests.common import common_config
 
 

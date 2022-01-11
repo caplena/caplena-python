@@ -2,7 +2,7 @@ from typing import Iterable, Type, Union
 
 from caplena.api import ApiBaseUri, ApiVersion
 from caplena.configuration import Configuration
-from caplena.endpoints.projects_endpoint import ProjectsController
+from caplena.controllers import ProjectsController
 from caplena.http.http_client import HttpClient, HttpMethod, HttpRetry
 from caplena.http.requests_http_client import RequestsHttpClient
 from caplena.logging.logger import LoggingLevel
