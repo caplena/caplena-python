@@ -54,6 +54,15 @@ class ApiFilter:
         return " & ".join(stringified_clauses)
 
     def __and__(self: U, other: U) -> U:
+        """Creates and returns the immutable conjunction of two separate filters. The original
+        filters will not be modified.
+
+        :param self: The first filter.
+        :type self: Filter
+        :param other: The second filter.
+        :type other: Filter
+        :rtype: Filter
+        """
         new_constraints = copy.deepcopy(self._constraints)
         other_constraints = copy.deepcopy(other._constraints)
 
@@ -70,6 +79,15 @@ class ApiFilter:
         return type(self)(constraints=new_constraints, has_conjunction=has_conjunction)
 
     def __or__(self: U, other: U) -> U:
+        """Creates and returns the immutable disjunction of two separate filters. The original
+        filters will not be modified.
+
+        :param self: The first filter.
+        :type self: Filter
+        :param other: The second filter.
+        :type other: Filter
+        :rtype: Filter
+        """
         new_constraints = copy.deepcopy(self._constraints)
         other_constraints = copy.deepcopy(other._constraints)
         new_filters = list(new_constraints.keys())

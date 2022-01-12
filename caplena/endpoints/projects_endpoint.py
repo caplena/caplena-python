@@ -14,6 +14,11 @@ from caplena.iterator import Iterator
 
 
 class ProjectsController(BaseController):
+    """The projects controller, encapsulating all project actions.
+
+    :param config: The configuration object that a particular controller should use.
+    """
+
     def create(
         self,
         *,
@@ -23,6 +28,18 @@ class ProjectsController(BaseController):
         tags: Optional[List[str]] = None,
         translation_engine: Optional[str] = None,
     ) -> "ProjectDetail":
+        """Creates a new project.
+
+        :param name: Project name, as displayed in the user interface.
+        :param language: Base language for this project.
+        :param columns: Columns of a project define its schema. In a sense, every project column corresponds to
+            exactly one column in an Excel sheet. The four column types numerical, date, boolean and text are
+            auxiliary columns, meaning that they won't be analyzed, but they can be used to visualize your results.
+        :param tags: Tags assigned to this project. If omitted, no tags are assigned.
+        :param translation_engine: Translation engine used to translate rows into the base language of this project.
+            If omitted, no translation will be performed.
+        :raises caplena.api.ApiException: An API exception.
+        """
         json = self.api.build_payload(
             name=name,
             language=language,
@@ -35,10 +52,20 @@ class ProjectsController(BaseController):
         return self.build_response(response, resource=ProjectDetail)
 
     def retrieve(self, *, id: str) -> "ProjectDetail":
+        """Retrieves a project you have previously created.
+
+        :param id: The project identifier.
+        :raises caplena.api.ApiException: An API exception.
+        """
         response = self.get(path="/projects/{id}", path_params={"id": id})
         return self.build_response(response, resource=ProjectDetail)
 
     def remove(self, *, id: str) -> None:
+        """Removes a previously created project.
+
+        :param id: The project identifier.
+        :raises caplena.api.ApiException: An API exception.
+        """
         self.delete(path="/projects/{id}", path_params={"id": id})
 
     def list(
@@ -48,6 +75,16 @@ class ProjectsController(BaseController):
         filter: Optional[ProjectsFilter] = None,
         order_by: ApiOrdering = ApiOrdering.desc("last_modified"),
     ) -> "Iterator[ProjectList]":
+        """Returns an iterator of all projects you have previously created. By default, the projects are returned
+        in sorted order, with the most recently modified project appearing first.
+
+        :param limit: Number of results returned per page.
+        :param filter: Filters to apply to this request. If omitted, no filters are applied.
+        :param order_by: Column on which the results should be ordered on. Defaults to :code:`desc:last_modified`.
+        :type order_by: ApiOrdering
+        :raises caplena.api.ApiException: An API exception.
+        """
+
         def fetcher(page: int) -> HttpResponse:
             return self.get(
                 path="/projects",
@@ -67,6 +104,13 @@ class ProjectsController(BaseController):
         id: str,
         rows: List[Dict[str, Any]],
     ) -> "RowsAppend":
+        """Appends multiple rows to a previously created project. It is possible to append a
+        maximum of 20 rows in a single request.
+
+        :param id: The project identifier.
+        :param rows: The rows to append to the specified project.
+        :raises caplena.api.ApiException: An API exception.
+        """
         response = self.post(
             path="/projects/{id}/rows/bulk",
             path_params={"id": id},
@@ -82,6 +126,12 @@ class ProjectsController(BaseController):
         id: str,
         columns: List[Dict[str, Any]],
     ) -> "Row":
+        """Appends a single row to a previously created project.
+
+        :param id: The project identifier.
+        :param columns: The columns for the new row.
+        :raises caplena.api.ApiException: An API exception.
+        """
         json = self.api.build_payload(columns=columns)
         response = self.post(
             path="/projects/{id}/rows",
@@ -98,6 +148,15 @@ class ProjectsController(BaseController):
         limit: int = 10,
         filter: Optional[RowsFilter] = None,
     ) -> "Iterator[Row]":
+        """Returns a list of all rows you have previously created for this project. The rows are returned in
+        sorted order, with the most recently modified row appearing first.
+
+        :param id: The project identifier.
+        :param limit: Number of results returned per page.
+        :param filter: Filters to apply to this request. If omitted, no filters are applied.
+        :raises caplena.api.ApiException: An API exception.
+        """
+
         def fetcher(page: int) -> HttpResponse:
             return self.get(
                 path="/projects/{id}/rows",
@@ -112,6 +171,12 @@ class ProjectsController(BaseController):
         return self.build_iterator(fetcher=fetcher, limit=limit, resource=Row)
 
     def retrieve_row(self, *, p_id: str, r_id: str) -> "Row":
+        """Retrieves a row for a project you have previously created.
+
+        :param p_id: The project identifier.
+        :param r_id: The row identifier.
+        :raises caplena.api.ApiException: An API exception.
+        """
         response = self.get(
             path="/projects/{p_id}/rows/{r_id}",
             path_params={"p_id": p_id, "r_id": r_id},
@@ -123,12 +188,21 @@ class ProjectsController(BaseController):
 
 
 class ProjectDetail(BaseResource[ProjectsController]):
+    """The project detail resource."""
+
     class Column(BaseObject[ProjectsController]):
         __fields__ = {"ref", "name", "type"}
 
         ref: str
+        """Human-readable identifier for this column. The reference field
+        is immutable and is unique among all columns within the same project.
+        """
+
         name: str
+        """Human-readable name for this column."""
+
         type: Literal["numerical", "boolean", "text", "date", "any", "text_to_analyze"]
+        """Type of this column."""
 
     class TextToAnalyze(Column):
         class Topic(BaseResource[ProjectsController]):
@@ -136,7 +210,10 @@ class ProjectDetail(BaseResource[ProjectsController]):
                 __fields__ = {"code", "label"}
 
                 code: int
+                """Code for this topic sentiment."""
+
                 label: str
+                """Label for this topic sentiment."""
 
             __fields__ = {
                 "label",
@@ -150,13 +227,28 @@ class ProjectDetail(BaseResource[ProjectsController]):
             }
 
             label: str
+            """Label for this topic."""
+
             category: str
+            """Category for this topic"""
+
             color: str
+            """Color for this topic."""
+
             description: str
+            """Description for this topic."""
+
             sentiment_enabled: bool
+            """Sentiment for this topic. Currently disabled."""
+
             sentiment_neutral: Sentiment
+            """Neutral topic sentiment."""
+
             sentiment_negative: Sentiment
+            """Negative topic sentiment."""
+
             sentiment_positive: Sentiment
+            """Positive topic sentiment."""
 
             @classmethod
             def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail.TextToAnalyze.Topic":
@@ -170,13 +262,21 @@ class ProjectDetail(BaseResource[ProjectsController]):
             __fields__ = {"reviewed_count"}
 
             reviewed_count: int
+            """Number of reviewed rows for this column."""
 
         __fields__ = {"ref", "name", "type", "description", "topics", "metadata"}
 
         type: Literal["text_to_analyze"]
+        """Type of this column."""
+
         description: str
+        """Column description displayed for this column."""
+
         topics: List[Topic]
+        """List of topics associated with this column."""
+
         metadata: Metadata
+        """Metadata associated with this column."""
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail.TextToAnalyze":
@@ -185,7 +285,9 @@ class ProjectDetail(BaseResource[ProjectsController]):
             return super().parse_obj(obj)
 
     class Auxiliary(Column):
+
         type: Literal["numerical", "boolean", "text", "date", "any"]
+        """Type of this column."""
 
     __fields__ = {
         "name",
@@ -201,27 +303,61 @@ class ProjectDetail(BaseResource[ProjectsController]):
     }
 
     name: str
+    """Name of this project."""
+
     owner: str
+    """Identifier of the user that owns this project."""
+
     tags: List[str]
+    """Tags associated with this project."""
+
     upload_status: Literal["pending", "in_progress", "succeeded", "failed"]
+    """Current upload status of this project."""
+
     # fmt: off
     language: Literal["af", "sq", "eu", "ca", "cs", "da", "nl", "en", "et", "fi",
                       "fr", "gl", "de", "el", "hu", "is", "it", "lb", "lt", "lv", "mk", "no",
                       "pl", "pt", "ro", "sr", "sk", "sl", "es", "sv", "tr"]
+    """Base language for this project."""
     # fmt: on
+
     columns: List[Column]
+    """Columns for this projects."""
+
     created: datetime
+    """Timestamp at which the project was created."""
+
     last_modified: datetime
+    """Timestamp at which the project was last updated."""
+
     translation_status: Optional[str]
+    """Current translation status for this project."""
+
     translation_engine: Optional[str]
+    """Translation engine used for translating :code:`text_to_analyze` columns."""
 
     def remove(self) -> None:
+        """Removes this project.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
         self.controller.remove(id=self.id)
 
     def append_row(self, *, columns: List[Dict[str, Any]]) -> "Row":
+        """Appends a single row to this project.
+
+        :param columns: The columns for the new row.
+        :raises caplena.api.ApiException: An API exception.
+        """
         return self.controller.append_row(id=self.id, columns=columns)
 
     def append_rows(self, *, rows: List[Dict[str, Any]]) -> "RowsAppend":
+        """Appends multiple rows to this project. It is possible to append a
+        maximum of 20 rows in a single request.
+
+        :param rows: The rows to append to the specified project.
+        :raises caplena.api.ApiException: An API exception.
+        """
         return self.controller.append_rows(id=self.id, rows=rows)
 
     def list_rows(
@@ -230,12 +366,28 @@ class ProjectDetail(BaseResource[ProjectsController]):
         limit: int = 10,
         filter: Optional[RowsFilter] = None,
     ) -> "Iterator[Row]":
+        """Returns a list of all rows you have previously created for this project. The rows are returned in
+        sorted order, with the most recently modified row appearing first.
+
+        :param limit: Number of results returned per page.
+        :param filter: Filters to apply to this request. If omitted, no filters are applied.
+        :raises caplena.api.ApiException: An API exception.
+        """
         return self.controller.list_rows(id=self.id, limit=limit, filter=filter)
 
     def retrieve_row(self, *, id: str) -> "Row":
+        """Retrieves a previously created row for this project.
+
+        :param id: The row identifier.
+        :raises caplena.api.ApiException: An API exception.
+        """
         return self.controller.retrieve_row(p_id=self.id, r_id=id)
 
     def refresh(self) -> None:
+        """Refreshes the properties of this project.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
         project = self.controller.retrieve(id=self.id)
         self.refresh_from(attrs=project._attrs)
 
@@ -254,6 +406,8 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
 
 class ProjectList(BaseResource[ProjectsController]):
+    """The project list resource."""
+
     __fields__ = {
         "name",
         "owner",
@@ -267,26 +421,58 @@ class ProjectList(BaseResource[ProjectsController]):
     }
 
     name: str
+    """Name of this project."""
+
     owner: str
+    """Identifier of the user that owns this project."""
+
     tags: List[str]
+    """Tags associated with this project."""
+
     upload_status: Literal["pending", "in_progress", "succeeded", "failed"]
+    """Current upload status of this project."""
+
     # fmt: off
     language: Literal["af", "sq", "eu", "ca", "cs", "da", "nl", "en", "et", "fi",
                       "fr", "gl", "de", "el", "hu", "is", "it", "lb", "lt", "lv", "mk", "no",
                       "pl", "pt", "ro", "sr", "sk", "sl", "es", "sv", "tr"]
+    """Base language for this project."""
     # fmt: on
+
     created: datetime
+    """Timestamp at which the project was created."""
+
     last_modified: datetime
+    """Timestamp at which the project was last updated."""
+
     translation_status: Optional[str]
+    """Current translation status for this project."""
+
     translation_engine: Optional[str]
+    """Translation engine used for translating :code:`text_to_analyze` columns."""
 
     def remove(self) -> None:
+        """Removes this project.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
         self.controller.remove(id=self.id)
 
     def append_row(self, *, columns: List[Dict[str, Any]]) -> "Row":
+        """Appends a single row to this project.
+
+        :param columns: The columns for the new row.
+        :raises caplena.api.ApiException: An API exception.
+        """
         return self.controller.append_row(id=self.id, columns=columns)
 
     def append_rows(self, *, rows: List[Dict[str, Any]]) -> "RowsAppend":
+        """Appends multiple rows to this project. It is possible to append a
+        maximum of 20 rows in a single request.
+
+        :param rows: The rows to append to the specified project.
+        :raises caplena.api.ApiException: An API exception.
+        """
         return self.controller.append_rows(id=self.id, rows=rows)
 
     def list_rows(
@@ -295,12 +481,28 @@ class ProjectList(BaseResource[ProjectsController]):
         limit: int = 10,
         filter: Optional[RowsFilter] = None,
     ) -> "Iterator[Row]":
+        """Returns a list of all rows you have previously created for this project. The rows are returned in
+        sorted order, with the most recently modified row appearing first.
+
+        :param limit: Number of results returned per page.
+        :param filter: Filters to apply to this request. If omitted, no filters are applied.
+        :raises caplena.api.ApiException: An API exception.
+        """
         return self.controller.list_rows(id=self.id, limit=limit, filter=filter)
 
     def retrieve_row(self, *, id: str) -> "Row":
+        """Retrieves a previously created row for this project.
+
+        :param id: The row identifier.
+        :raises caplena.api.ApiException: An API exception.
+        """
         return self.controller.retrieve_row(p_id=self.id, r_id=id)
 
     def refresh(self) -> None:
+        """Refreshes the properties of this project.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
         project = self.controller.retrieve(id=self.id)
         self.refresh_from(attrs=project._attrs)
 
@@ -313,32 +515,55 @@ class ProjectList(BaseResource[ProjectsController]):
 
 
 class RowsAppend(BaseObject[ProjectsController]):
+    """The bulk row create response object."""
+
     __fields__ = {"status", "queued_rows_count", "estimated_minutes"}
 
     status: Literal["pending"]
+    """Status of the bulk append operation."""
+
     queued_rows_count: int
+    """Number of rows that were queued for appending."""
+
     estimated_minutes: float
+    """Estimation in minutes about how long this bulk opertion will approximately take."""
 
 
 class Row(BaseResource[ProjectsController]):
+    """The Row resource."""
+
     class Column(BaseObject[ProjectsController]):
         __fields__ = {"ref", "type", "value"}
 
         ref: str
+        """Human-readable identifier for this column."""
+
         type: Literal["numerical", "boolean", "text", "date", "any", "text_to_analyze"]
+        """Type of this column."""
+
         value: Union[float, bool, None, str, datetime]
+        """Value assigned to this column."""
 
     class NumericalColumn(Column):
         type: Literal["numerical"]
+        """Type of this column."""
+
         value: Optional[float]
+        """Numerical value assigned to this column."""
 
     class BooleanColumn(Column):
         type: Literal["boolean"]
+        """Type of this column."""
+
         value: Optional[bool]
+        """Boolean value assigned to this column."""
 
     class DateColumn(Column):
         type: Literal["date"]
+        """Type of this column."""
+
         value: Optional[datetime]
+        """Date time value assigned to this column."""
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "Row.DateColumn":
@@ -349,22 +574,42 @@ class Row(BaseResource[ProjectsController]):
 
     class AnyColumn(Column):
         type: Literal["any"]
+        """Type of this column."""
+
         value: None
+        """Any value assigned to this column."""
 
     class TextColumn(Column):
         type: Literal["text"]
+        """Type of this column."""
+
         value: str
+        """Text value assigned to this column."""
 
     class TextToAnalyzeColumn(Column):
         class Topic(BaseObject[ProjectsController]):
             __fields__ = {"id", "label", "category", "code", "sentiment_label", "sentiment"}
 
             id: str
+            """Unique identifier for this topic."""
+
             label: str
+            """Label for this topic."""
+
             category: str
+            """Category for this topic."""
+
             code: int
+            """Code for the inferred topic sentiment. If sentiment is disabled, the neutral
+            topic sentiment :code:`code` will be used."""
+
             sentiment_label: str
+            """Label for the inferred topic sentiment. If sentiment is disabled, the neutral
+            topic sentiment :code:`label` will be used."""
+
             sentiment: Literal["neutral", "positive", "negative"]
+            """Inferred sentiment for this column value. If sentiment is disabled, 
+            will always be :code:`neutral`."""
 
         __fields__ = {
             "ref",
@@ -378,9 +623,17 @@ class Row(BaseResource[ProjectsController]):
         }
 
         type: Literal["text_to_analyze"]
+        """Type of this column."""
+
         value: str
+        """Text value assigned to this column."""
+
         was_reviewed: Optional[bool]
+        """Indicates whether the row value for this column has been reviewed."""
+
         sentiment_overall: Optional[Literal["neutral", "positive", "negative"]]
+        """Inferred overall entiment for this column."""
+
         # fmt: off
         source_language: Optional[Literal["af", "am", "ar", "az", "be", "bg", "bn", "bs", "ca", "ceb", "co", "cs", "cy", "da",
                                           "de", "el", "en", "eo", "es", "et", "eu", "fa", "fi", "fr", "fy", "ga", "gd", "gl",
@@ -390,9 +643,14 @@ class Row(BaseResource[ProjectsController]):
                                           "pa", "pl", "ps", "pt", "ro", "ru", "sd", "si", "sk", "sl", "sm", "sn", "so", "sq",
                                           "sr", "st", "su", "sv", "sw", "ta", "te", "tg", "th", "tl", "tr", "tk", "uk", "ur",
                                           "uz", "vi", "xh", "yi", "yo", "zh", "zh-CN", "zh-TW", "zu"]]
+        """Source language of this value."""
         # fmt: on
+
         translated_value: Optional[str]
+        """Translated value if translation is enabled for this column."""
+
         topics: List[Topic]
+        """Topics matching the value of this column. If no topics match, an empty array is returned."""
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "Row.TextToAnalyzeColumn":
@@ -402,8 +660,13 @@ class Row(BaseResource[ProjectsController]):
     __fields__ = {"created", "last_modified", "columns"}
 
     created: datetime
+    """Timestamp at which this row was created."""
+
     last_modified: datetime
+    """Timestamp at which this row was last updated."""
+
     columns: List[Column]
+    """Columns for this row."""
 
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]) -> "Row":

@@ -5,8 +5,11 @@ T = TypeVar("T")
 
 
 class Iterator(Generic[T]):
+    """A lazy iterator, only fetches more results when the entries are iterated."""
+
     @property
     def count(self) -> int:
+        """The total number of elements that exist for the requested resource."""
         if self._total_count is not None:
             return self._total_count
         else:
