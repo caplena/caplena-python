@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "caplena"
-version = "0.0.1"
+version = "0.0.2"
 authors = [{name = "Caplena", email = "support@caplena.com"}]
 maintainers = [{name = "Nico Haenggi", email = "nico@caplena.com"}]
 keywords = ["caplena", "api", "nlp", "market research"]
@@ -31,6 +31,7 @@ requires-python = ">=3.7"
 dynamic = ["description"]
 dependencies = [
     "requests >=2.26.0",
+    "typing-extensions >=4.0.0",
 ]
 
 [project.optional-dependencies]
