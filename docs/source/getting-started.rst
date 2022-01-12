@@ -17,6 +17,7 @@ Dependencies
 The following distributions will be installed automatically when installing Caplena.
 
 * `Requests <https://docs.python-requests.org/en/latest/>`_ is an elegant and simple HTTP library for Python.
+* `Typing Extensions <https://github.com/python/typing/tree/master/typing_extensions>`_ enables use of new type system features on older Python versions.
 
 Installing Caplena
 ~~~~~~~~~~~~~~~~~~

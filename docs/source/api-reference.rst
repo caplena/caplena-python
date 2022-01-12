@@ -7,6 +7,7 @@ API Reference
 
 This part of the documentation covers all the interfaces of our client library.
 
+
 Client
 ------
 
@@ -18,7 +19,23 @@ Client
 Controllers
 -----------
 
-.. autoclass:: caplena.endpoints.projects_endpoint.ProjectsController
+.. autoclass:: caplena.controllers.ProjectsController
+    :members:
+
+
+Resources
+---------
+
+.. autoclass:: caplena.resources.ProjectDetail
+    :members:
+
+.. autoclass:: caplena.resources.ProjectList
+    :members:
+
+.. autoclass:: caplena.resources.RowsAppend
+    :members:
+
+.. autoclass:: caplena.resources.Row
     :members:
 
 
@@ -27,22 +44,23 @@ Filters
 
 .. autoclass:: caplena.filters.ProjectsFilter
     :members:
+    :inherited-members:
+    :special-members: __and__, __or__
 
 .. autoclass:: caplena.filters.RowsFilter
     :members:
+    :inherited-members:
+    :special-members: __and__, __or__
 
 
-Resources
----------
+Iterator
+--------
 
-.. autoclass:: caplena.endpoints.projects_endpoint.ProjectDetail
+.. autoclass:: caplena.iterator.Iterator
     :members:
 
-.. autoclass:: caplena.endpoints.projects_endpoint.ProjectList
-    :members:
+Exceptions
+----------
 
-.. autoclass:: caplena.endpoints.projects_endpoint.RowsAppend
-    :members:
-
-.. autoclass:: caplena.endpoints.projects_endpoint.Row
+.. autoclass:: caplena.api.ApiException
     :members:
