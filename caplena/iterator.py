@@ -20,11 +20,11 @@ class Iterator(Generic[T]):
         self,
         *,
         results_fetcher: Callable[[int], Tuple[List[T], bool, int]],
-        limit: int,
         current_page: int = 0,
         total_results_fetched: int = 0,
         results: Optional[List[T]] = None,
         total_count: Optional[int] = None,
+        limit: Optional[int] = None,
         has_next: bool = True
     ):
         self._results_fetcher = results_fetcher
@@ -50,7 +50,7 @@ class Iterator(Generic[T]):
         self._has_next = has_next
 
     def __len__(self) -> int:
-        return self.count if self.count < self._limit else self._limit
+        return self.count if self._limit is None or self.count < self._limit else self._limit
 
     def __iter__(self) -> "Iterator[T]":
         return type(self)(
@@ -64,7 +64,7 @@ class Iterator(Generic[T]):
         )
 
     def __next__(self) -> T:
-        if self._total_results_iterated >= self._limit:
+        if self._limit and self._total_results_iterated >= self._limit:
             raise StopIteration()
 
         self._total_results_iterated += 1

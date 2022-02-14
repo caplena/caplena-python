@@ -71,17 +71,17 @@ class ProjectsController(BaseController):
     def list(
         self,
         *,
-        limit: int = 10,
-        filter: Optional[ProjectsFilter] = None,
         order_by: ApiOrdering = ApiOrdering.desc("last_modified"),
+        limit: Optional[int] = None,
+        filter: Optional[ProjectsFilter] = None,
     ) -> "Iterator[ProjectList]":
         """Returns an iterator of all projects you have previously created. By default, the projects are returned
         in sorted order, with the most recently modified project appearing first.
 
-        :param limit: Number of results returned per page.
-        :param filter: Filters to apply to this request. If omitted, no filters are applied.
         :param order_by: Column on which the results should be ordered on. Defaults to :code:`desc:last_modified`.
         :type order_by: ApiOrdering
+        :param limit: Number of results returned per page. If unspecified, will return all results.
+        :param filter: Filters to apply to this request. If omitted, no filters are applied.
         :raises caplena.api.ApiException: An API exception.
         """
 
@@ -90,7 +90,7 @@ class ProjectsController(BaseController):
                 path="/projects",
                 query_params={
                     "page": str(page),
-                    "limit": str(limit),
+                    "limit": str(10),
                 },
                 filter=filter,
                 order_by=order_by,
@@ -145,14 +145,14 @@ class ProjectsController(BaseController):
         self,
         *,
         id: str,
-        limit: int = 10,
+        limit: Optional[int] = None,
         filter: Optional[RowsFilter] = None,
     ) -> "Iterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
-        sorted order, with the most recently modified row appearing first.
+        sorted order, with the least recently added row appearing first.
 
         :param id: The project identifier.
-        :param limit: Number of results returned per page.
+        :param limit: Number of results returned per page. If unspecified, will return all results.
         :param filter: Filters to apply to this request. If omitted, no filters are applied.
         :raises caplena.api.ApiException: An API exception.
         """
@@ -163,7 +163,7 @@ class ProjectsController(BaseController):
                 path_params={"id": id},
                 query_params={
                     "page": str(page),
-                    "limit": str(limit),
+                    "limit": str(30),
                 },
                 filter=filter,
             )
@@ -608,7 +608,7 @@ class Row(BaseResource[ProjectsController]):
             topic sentiment :code:`label` will be used."""
 
             sentiment: Literal["neutral", "positive", "negative"]
-            """Inferred sentiment for this column value. If sentiment is disabled, 
+            """Inferred sentiment for this column value. If sentiment is disabled,
             will always be :code:`neutral`."""
 
         __fields__ = {
@@ -640,9 +640,9 @@ class Row(BaseResource[ProjectsController]):
                                           "gu", "ha", "haw", "hi", "hmn", "hr", "ht", "hu", "hy", "id", "ig", "is", "it", "iw",
                                           "he", "ja", "jw", "ka", "kk", "km", "kn", "ko", "ku", "ky", "la", "lb", "lo", "lt",
                                           "lv", "mg", "mi", "mk", "ml", "mn", "mr", "ms", "mt", "my", "ne", "nl", "no", "ny",
-                                          "pa", "pl", "ps", "pt", "ro", "ru", "sd", "si", "sk", "sl", "sm", "sn", "so", "sq",
-                                          "sr", "st", "su", "sv", "sw", "ta", "te", "tg", "th", "tl", "tr", "tk", "uk", "ur",
-                                          "uz", "vi", "xh", "yi", "yo", "zh", "zh-CN", "zh-TW", "zu"]]
+                                          "or", "pa", "pl", "ps", "pt", "ro", "rw", "ru", "sd", "si", "sk", "sl", "sm", "sn",
+                                          "so", "sq", "sr", "st", "su", "sv", "sw", "ta", "te", "tg", "th", "tl", "tr", "tk",
+                                          "tt", "ug", "uk", "ur", "uz", "vi", "xh", "yi", "yo", "zh", "zh-CN", "zh-TW", "zu"]]
         """Source language of this value."""
         # fmt: on
 
