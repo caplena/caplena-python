@@ -263,7 +263,7 @@ class ProjectsControllerTests(unittest.TestCase):
         no_results = self.controller.list_rows(id=project.id, filter=filt)
         self.assertEqual(0, no_results.count)
 
-    def test_retreiving_a_row_succeeds(self) -> None:
+    def test_retrieving_a_row_succeeds(self) -> None:
         project = self.create_project()
         row = self.controller.append_row(
             id=project.id,
