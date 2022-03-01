@@ -363,7 +363,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
     def list_rows(
         self,
         *,
-        limit: int = 10,
+        limit: Optional[int] = None,
         filter: Optional[RowsFilter] = None,
     ) -> "Iterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
@@ -478,7 +478,7 @@ class ProjectList(BaseResource[ProjectsController]):
     def list_rows(
         self,
         *,
-        limit: int = 10,
+        limit: Optional[int] = None,
         filter: Optional[RowsFilter] = None,
     ) -> "Iterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
