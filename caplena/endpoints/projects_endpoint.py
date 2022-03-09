@@ -259,10 +259,47 @@ class ProjectDetail(BaseResource[ProjectsController]):
                 return super().parse_obj(obj)
 
         class Metadata(BaseObject[ProjectsController]):
-            __fields__ = {"reviewed_count"}
+            class LearnsForm(BaseObject[ProjectsController]):
+                __fields__ = {"project", "ref"}
+
+                project: str
+                """Base project that this column learns from."""
+
+                ref: str
+                """Column identifier that this column learns from."""
+
+            __fields__ = {
+                "reviewed_count",
+                "category",
+                "do_group_duplicates",
+                "do_show_translations",
+                "learns_from",
+            }
 
             reviewed_count: int
             """Number of reviewed rows for this column."""
+
+            category: Optional[
+                Literal[
+                    "customer_satisfaction",
+                    "employee_feedback",
+                    "brand_perception",
+                    "product_perception",
+                    "event_evaluation",
+                    "list_answers",
+                    "other",
+                ]
+            ]
+            """Category of this column."""
+
+            do_group_duplicates: bool
+            """Determines whether duplicates should be grouped or not."""
+
+            do_show_translations: bool
+            """Determines whether the original or translated text is shown."""
+
+            learns_from: Optional[LearnsForm]
+            """Base column that this column learns from."""
 
         __fields__ = {"ref", "name", "type", "description", "topics", "metadata"}
 
@@ -367,7 +404,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         filter: Optional[RowsFilter] = None,
     ) -> "Iterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
-        sorted order, with the most recently modified row appearing first.
+        sorted order, with the least recently added row appearing first.
 
         :param limit: Number of results returned per page.
         :param filter: Filters to apply to this request. If omitted, no filters are applied.
@@ -482,7 +519,7 @@ class ProjectList(BaseResource[ProjectsController]):
         filter: Optional[RowsFilter] = None,
     ) -> "Iterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
-        sorted order, with the most recently modified row appearing first.
+        sorted order, with the least recently added row appearing first.
 
         :param limit: Number of results returned per page.
         :param filter: Filters to apply to this request. If omitted, no filters are applied.
@@ -541,14 +578,14 @@ class Row(BaseResource[ProjectsController]):
         type: Literal["numerical", "boolean", "text", "date", "any", "text_to_analyze"]
         """Type of this column."""
 
-        value: Union[float, bool, None, str, datetime]
+        value: Union[int, float, bool, None, str, datetime]
         """Value assigned to this column."""
 
     class NumericalColumn(Column):
         type: Literal["numerical"]
         """Type of this column."""
 
-        value: Optional[float]
+        value: Optional[Union[int, float]]
         """Numerical value assigned to this column."""
 
     class BooleanColumn(Column):
@@ -563,10 +600,11 @@ class Row(BaseResource[ProjectsController]):
         """Type of this column."""
 
         value: Optional[datetime]
-        """Date time value assigned to this column."""
+        """ISO 8601 datetime or date value assigned to this column."""
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "Row.DateColumn":
+            # TODO: handle datetime parsing here
             if obj["value"] is not None:
                 obj["value"] = Helpers.from_rfc3339_datetime(obj["value"])
 
