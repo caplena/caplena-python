@@ -35,3 +35,60 @@ $ pip install caplena
 ```
 
 Caplena is now installed.
+
+## Development
+
+To use `caplena-python` in a development environment, we recommend you to set up a development virtualenv. Once done, you
+can run the following command to install all required dependencies:
+
+```sh
+make install
+```
+
+Run all tests:
+
+```sh
+make test
+```
+
+Run all tests in watch mode:
+
+```sh
+make test-watch
+```
+
+Run the formatter:
+
+```sh
+make fmt
+```
+
+Run the linter:
+
+```sh
+make lint
+```
+
+Build the Sphinx SDK docs:
+
+```sh
+make build-docs
+```
+
+Build the Python package:
+
+```sh
+make build-sdk
+```
+
+Publish the Python package:
+
+```sh
+make publish-sdk
+```
+
+Show all supported commands:
+
+```sh
+make help
+```
