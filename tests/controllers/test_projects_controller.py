@@ -112,7 +112,16 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual("Do you like us?", our_strengths.name)
         self.assertEqual("text_to_analyze", our_strengths.type)
         self.assertEqual("Please explain what our strengths are.", our_strengths.description)
-        self.assertDictEqual({"reviewed_count": 0}, our_strengths.metadata.dict())
+        self.assertDictEqual(
+            {
+                "reviewed_count": 0,
+                "category": None,
+                "do_group_duplicates": True,
+                "do_show_translations": False,
+                "learns_from": None,
+            },
+            our_strengths.metadata.dict(),
+        )
         self.assertEqual(2, len(our_strengths.topics))
 
         topic1, topic2 = our_strengths.topics[0], our_strengths.topics[1]
@@ -233,7 +242,7 @@ class ProjectsControllerTests(unittest.TestCase):
                 {"ref": "our_strengths", "value": "This is my review. Very nice."},
             ],
         )
-        rows = [row2.dict(), row1.dict()]
+        rows = [row1.dict(), row2.dict()]
         retrieved = self.controller.list_rows(id=project.id, limit=2)
 
         self.assertEqual(2, retrieved.count)
