@@ -4,6 +4,11 @@
 help:
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+install: ## Installs all dependencies
+	flit install --deps develop --symlink
+	pre-commit
+	mypy --install-types
+
 lint: ## Run code linters
 	black .
 	isort .
@@ -11,11 +16,20 @@ lint: ## Run code linters
 	mypy .
 
 fmt format: ## Run code formatters
-	black ninja tests
-	isort ninja tests
+	black caplena tests
+	isort caplena tests
 
 test: ## Run tests
 	pytest .
 
 test-watch: ## Run tests in watching mode
 	ptw -w
+
+build-docs: ## Builds Sphinx HTML docs
+	cd docs && $(MAKE) html
+
+build-sdk: ## Builds the Python SDK
+	flit build
+
+publish-sdk: ## Publishes the Python SDK
+	flit publish

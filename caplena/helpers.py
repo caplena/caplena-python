@@ -46,7 +46,7 @@ class Helpers:
         tz = dt.strftime("%z")
         if tz == "+0000":
             tz = "Z"
-        else:
+        elif tz != "":
             tz = tz[:3] + ":" + tz[3:]
         return rfc3339 + tz
 

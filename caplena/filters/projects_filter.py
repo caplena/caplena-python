@@ -1,6 +1,12 @@
 from datetime import datetime
 
+from typing_extensions import Literal
+
 from caplena.api import ApiFilter, ZeroOrMany
+
+DateRange = Literal[
+    "all_time", "this_month", "last_month", "this_quarter", "last_quarter", "this_year", "last_year"
+]
 
 
 class ProjectsFilter(ApiFilter):
@@ -139,6 +145,7 @@ class ProjectsFilter(ApiFilter):
         gt: ZeroOrMany[datetime] = None,
         lte: ZeroOrMany[datetime] = None,
         lt: ZeroOrMany[datetime] = None,
+        range: ZeroOrMany[DateRange] = None,
         year: ZeroOrMany[int] = None,
         year__gte: ZeroOrMany[int] = None,
         year__gt: ZeroOrMany[int] = None,
@@ -163,6 +170,7 @@ class ProjectsFilter(ApiFilter):
         :param gt: Greater than filter for date times.
         :param lte: Less than or equal to filter for date times.
         :param lt: Less than filter for date times.
+        :param range: Range filter for date times.
         :param year: Allows filtering on the year.
         :param year__gte: Greater than or equal to filter on the year.
         :param year__gt: Greater than filter on the year.
@@ -186,6 +194,7 @@ class ProjectsFilter(ApiFilter):
                 "gt": gt,
                 "lte": lte,
                 "lt": lt,
+                "range": range,
                 "year": year,
                 "year.gte": year__gte,
                 "year.gt": year__gt,
@@ -212,6 +221,7 @@ class ProjectsFilter(ApiFilter):
         gt: ZeroOrMany[datetime] = None,
         lte: ZeroOrMany[datetime] = None,
         lt: ZeroOrMany[datetime] = None,
+        range: ZeroOrMany[DateRange] = None,
         year: ZeroOrMany[int] = None,
         year__gte: ZeroOrMany[int] = None,
         year__gt: ZeroOrMany[int] = None,
@@ -236,6 +246,7 @@ class ProjectsFilter(ApiFilter):
         :param gt: Greater than filter for date times.
         :param lte: Less than or equal to filter for date times.
         :param lt: Less than filter for date times.
+        :param range: Range filter for date times.
         :param year: Allows filtering on the year.
         :param year__gte: Greater than or equal to filter on the year.
         :param year__gt: Greater than filter on the year.
@@ -259,6 +270,7 @@ class ProjectsFilter(ApiFilter):
                 "gt": gt,
                 "lte": lte,
                 "lt": lt,
+                "range": range,
                 "year": year,
                 "year.gte": year__gte,
                 "year.gt": year__gt,
@@ -360,6 +372,36 @@ class RowsFilter(ApiFilter):
             )
 
         @classmethod
+        def date(
+            cls,
+            *,
+            ref: str,
+            gte: ZeroOrMany[datetime] = None,
+            gt: ZeroOrMany[datetime] = None,
+            lte: ZeroOrMany[datetime] = None,
+            lt: ZeroOrMany[datetime] = None,
+            range: ZeroOrMany[DateRange] = None,
+        ) -> "RowsFilter":
+            """Allows filtering on date columns.
+
+            :param gte: Greater than or equal to filter for date times.
+            :param gt: Greater than filter for date times.
+            :param lte: Less than or equal to filter for date times.
+            :param lt: Less than filter for date times.
+            :param range: Range filter for date times.
+            """
+            return RowsFilter.construct(
+                name="columns",
+                filters={
+                    f"{ref}[date].gte": gte,
+                    f"{ref}[date].gt": gt,
+                    f"{ref}[date].lte": lte,
+                    f"{ref}[date].lt": lt,
+                    f"{ref}[date].range": range,
+                },
+            )
+
+        @classmethod
         def text_to_analyze(
             cls,
             *,
@@ -401,6 +443,7 @@ class RowsFilter(ApiFilter):
         gt: ZeroOrMany[datetime] = None,
         lte: ZeroOrMany[datetime] = None,
         lt: ZeroOrMany[datetime] = None,
+        range: ZeroOrMany[DateRange] = None,
         year: ZeroOrMany[int] = None,
         year__gte: ZeroOrMany[int] = None,
         year__gt: ZeroOrMany[int] = None,
@@ -425,6 +468,7 @@ class RowsFilter(ApiFilter):
         :param gt: Greater than filter for date times.
         :param lte: Less than or equal to filter for date times.
         :param lt: Less than filter for date times.
+        :param range: Range filter for date times.
         :param year: Allows filtering on the year.
         :param year__gte: Greater than or equal to filter on the year.
         :param year__gt: Greater than filter on the year.
@@ -448,6 +492,7 @@ class RowsFilter(ApiFilter):
                 "gt": gt,
                 "lte": lte,
                 "lt": lt,
+                "range": range,
                 "year": year,
                 "year.gte": year__gte,
                 "year.gt": year__gt,
@@ -474,6 +519,7 @@ class RowsFilter(ApiFilter):
         gt: ZeroOrMany[datetime] = None,
         lte: ZeroOrMany[datetime] = None,
         lt: ZeroOrMany[datetime] = None,
+        range: ZeroOrMany[DateRange] = None,
         year: ZeroOrMany[int] = None,
         year__gte: ZeroOrMany[int] = None,
         year__gt: ZeroOrMany[int] = None,
@@ -498,6 +544,7 @@ class RowsFilter(ApiFilter):
         :param gt: Greater than filter for date times.
         :param lte: Less than or equal to filter for date times.
         :param lt: Less than filter for date times.
+        :param range: Range filter for date times.
         :param year: Allows filtering on the year.
         :param year__gte: Greater than or equal to filter on the year.
         :param year__gt: Greater than filter on the year.
@@ -521,6 +568,7 @@ class RowsFilter(ApiFilter):
                 "gt": gt,
                 "lte": lte,
                 "lt": lt,
+                "range": range,
                 "year": year,
                 "year.gte": year__gte,
                 "year.gt": year__gt,

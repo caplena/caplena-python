@@ -166,8 +166,8 @@ class BaseController:
         self,
         *,
         fetcher: Callable[[int], HttpResponse],
-        limit: int,
         resource: Type[BO],
+        limit: Optional[int] = None,
     ) -> Iterator[BO]:
         def results_fetcher(page: int) -> Tuple[List[BO], bool, int]:
             response = fetcher(page)

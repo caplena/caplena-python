@@ -71,17 +71,17 @@ class ProjectsController(BaseController):
     def list(
         self,
         *,
-        limit: int = 10,
-        filter: Optional[ProjectsFilter] = None,
         order_by: ApiOrdering = ApiOrdering.desc("last_modified"),
+        limit: Optional[int] = None,
+        filter: Optional[ProjectsFilter] = None,
     ) -> "Iterator[ProjectList]":
         """Returns an iterator of all projects you have previously created. By default, the projects are returned
         in sorted order, with the most recently modified project appearing first.
 
-        :param limit: Number of results returned per page.
-        :param filter: Filters to apply to this request. If omitted, no filters are applied.
         :param order_by: Column on which the results should be ordered on. Defaults to :code:`desc:last_modified`.
         :type order_by: ApiOrdering
+        :param limit: Number of results returned per page. If unspecified, will return all results.
+        :param filter: Filters to apply to this request. If omitted, no filters are applied.
         :raises caplena.api.ApiException: An API exception.
         """
 
@@ -90,7 +90,7 @@ class ProjectsController(BaseController):
                 path="/projects",
                 query_params={
                     "page": str(page),
-                    "limit": str(limit),
+                    "limit": str(10),
                 },
                 filter=filter,
                 order_by=order_by,
@@ -145,14 +145,14 @@ class ProjectsController(BaseController):
         self,
         *,
         id: str,
-        limit: int = 10,
+        limit: Optional[int] = None,
         filter: Optional[RowsFilter] = None,
     ) -> "Iterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
-        sorted order, with the most recently modified row appearing first.
+        sorted order, with the least recently added row appearing first.
 
         :param id: The project identifier.
-        :param limit: Number of results returned per page.
+        :param limit: Number of results returned per page. If unspecified, will return all results.
         :param filter: Filters to apply to this request. If omitted, no filters are applied.
         :raises caplena.api.ApiException: An API exception.
         """
@@ -163,7 +163,7 @@ class ProjectsController(BaseController):
                 path_params={"id": id},
                 query_params={
                     "page": str(page),
-                    "limit": str(limit),
+                    "limit": str(30),
                 },
                 filter=filter,
             )
@@ -259,10 +259,47 @@ class ProjectDetail(BaseResource[ProjectsController]):
                 return super().parse_obj(obj)
 
         class Metadata(BaseObject[ProjectsController]):
-            __fields__ = {"reviewed_count"}
+            class LearnsForm(BaseObject[ProjectsController]):
+                __fields__ = {"project", "ref"}
+
+                project: str
+                """Base project that this column learns from."""
+
+                ref: str
+                """Column identifier that this column learns from."""
+
+            __fields__ = {
+                "reviewed_count",
+                "category",
+                "do_group_duplicates",
+                "do_show_translations",
+                "learns_from",
+            }
 
             reviewed_count: int
             """Number of reviewed rows for this column."""
+
+            category: Optional[
+                Literal[
+                    "customer_satisfaction",
+                    "employee_feedback",
+                    "brand_perception",
+                    "product_perception",
+                    "event_evaluation",
+                    "list_answers",
+                    "other",
+                ]
+            ]
+            """Category of this column."""
+
+            do_group_duplicates: bool
+            """Determines whether duplicates should be grouped or not."""
+
+            do_show_translations: bool
+            """Determines whether the original or translated text is shown."""
+
+            learns_from: Optional[LearnsForm]
+            """Base column that this column learns from."""
 
         __fields__ = {"ref", "name", "type", "description", "topics", "metadata"}
 
@@ -363,11 +400,11 @@ class ProjectDetail(BaseResource[ProjectsController]):
     def list_rows(
         self,
         *,
-        limit: int = 10,
+        limit: Optional[int] = None,
         filter: Optional[RowsFilter] = None,
     ) -> "Iterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
-        sorted order, with the most recently modified row appearing first.
+        sorted order, with the least recently added row appearing first.
 
         :param limit: Number of results returned per page.
         :param filter: Filters to apply to this request. If omitted, no filters are applied.
@@ -478,11 +515,11 @@ class ProjectList(BaseResource[ProjectsController]):
     def list_rows(
         self,
         *,
-        limit: int = 10,
+        limit: Optional[int] = None,
         filter: Optional[RowsFilter] = None,
     ) -> "Iterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
-        sorted order, with the most recently modified row appearing first.
+        sorted order, with the least recently added row appearing first.
 
         :param limit: Number of results returned per page.
         :param filter: Filters to apply to this request. If omitted, no filters are applied.
@@ -541,14 +578,14 @@ class Row(BaseResource[ProjectsController]):
         type: Literal["numerical", "boolean", "text", "date", "any", "text_to_analyze"]
         """Type of this column."""
 
-        value: Union[float, bool, None, str, datetime]
+        value: Union[int, float, bool, None, str, datetime]
         """Value assigned to this column."""
 
     class NumericalColumn(Column):
         type: Literal["numerical"]
         """Type of this column."""
 
-        value: Optional[float]
+        value: Optional[Union[int, float]]
         """Numerical value assigned to this column."""
 
     class BooleanColumn(Column):
@@ -563,10 +600,11 @@ class Row(BaseResource[ProjectsController]):
         """Type of this column."""
 
         value: Optional[datetime]
-        """Date time value assigned to this column."""
+        """ISO 8601 datetime or date value assigned to this column."""
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "Row.DateColumn":
+            # TODO: handle datetime parsing here
             if obj["value"] is not None:
                 obj["value"] = Helpers.from_rfc3339_datetime(obj["value"])
 
@@ -608,7 +646,7 @@ class Row(BaseResource[ProjectsController]):
             topic sentiment :code:`label` will be used."""
 
             sentiment: Literal["neutral", "positive", "negative"]
-            """Inferred sentiment for this column value. If sentiment is disabled, 
+            """Inferred sentiment for this column value. If sentiment is disabled,
             will always be :code:`neutral`."""
 
         __fields__ = {
@@ -640,9 +678,9 @@ class Row(BaseResource[ProjectsController]):
                                           "gu", "ha", "haw", "hi", "hmn", "hr", "ht", "hu", "hy", "id", "ig", "is", "it", "iw",
                                           "he", "ja", "jw", "ka", "kk", "km", "kn", "ko", "ku", "ky", "la", "lb", "lo", "lt",
                                           "lv", "mg", "mi", "mk", "ml", "mn", "mr", "ms", "mt", "my", "ne", "nl", "no", "ny",
-                                          "pa", "pl", "ps", "pt", "ro", "ru", "sd", "si", "sk", "sl", "sm", "sn", "so", "sq",
-                                          "sr", "st", "su", "sv", "sw", "ta", "te", "tg", "th", "tl", "tr", "tk", "uk", "ur",
-                                          "uz", "vi", "xh", "yi", "yo", "zh", "zh-CN", "zh-TW", "zu"]]
+                                          "or", "pa", "pl", "ps", "pt", "ro", "rw", "ru", "sd", "si", "sk", "sl", "sm", "sn",
+                                          "so", "sq", "sr", "st", "su", "sv", "sw", "ta", "te", "tg", "th", "tl", "tr", "tk",
+                                          "tt", "ug", "uk", "ur", "uz", "vi", "xh", "yi", "yo", "zh", "zh-CN", "zh-TW", "zu"]]
         """Source language of this value."""
         # fmt: on
 
