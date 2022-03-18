@@ -45,6 +45,9 @@ class RequestsHttpClient(HttpClient):
                 f"Received a response with an unsupported encoding scheme (encoding='{response.encoding}')."
             )
 
+        self.logger.debug(
+            f"Received response from server (status_code=${response.status_code}, text={response.text})"
+        )
         return HttpResponse(
             status_code=response.status_code,
             reason=response.reason,

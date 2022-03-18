@@ -79,7 +79,7 @@ class Configuration:
         self._retry_methods = retry_methods
         self._logging_level = logging_level
 
-        self._logger = DefaultLogger("caplena")
+        self._logger = DefaultLogger("caplena", self._logging_level)
         self._http_client = self.build_http_client(
             http_client,
             logger=self._logger,
