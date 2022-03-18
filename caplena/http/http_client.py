@@ -78,6 +78,8 @@ class HttpClient:
         retry = self.get_retry(retry)
 
         self.logger.info("Sending request to Caplena API", method=str(method), uri=uri)
+        if json is not None:
+            self.logger.debug("Sending request to Caplena API", json=str(json))
 
         # TODO: handle retry here
         response = self.request_raw(
@@ -88,7 +90,9 @@ class HttpClient:
             json=json,
         )
         self.logger.debug(
-            f"Received response from server (status_code={response.status_code}, text={response.text})"
+            "Received response from server",
+            status_code=str(response.status_code),
+            text=str(response.text),
         )
 
         return response
