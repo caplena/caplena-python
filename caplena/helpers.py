@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Dict, Iterable
 from urllib.parse import urlencode
 
+from caplena.constants import NOT_SET
 from caplena.version import __version__
 
 
@@ -85,6 +86,6 @@ class Helpers:
     def build_dict(**kwargs: Any) -> Dict[str, Any]:
         constructed_dict: Dict[str, Any] = {}
         for field_name, field in kwargs.items():
-            if field is not None:
+            if field != NOT_SET:
                 constructed_dict[field_name] = field
         return constructed_dict
