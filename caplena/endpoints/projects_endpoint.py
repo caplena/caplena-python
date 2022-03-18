@@ -293,33 +293,11 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
             __fields__ = {
                 "reviewed_count",
-                "category",
-                "do_group_duplicates",
-                "do_show_translations",
                 "learns_from",
             }
 
             reviewed_count: int
             """Number of reviewed rows for this column."""
-
-            category: Optional[
-                Literal[
-                    "customer_satisfaction",
-                    "employee_feedback",
-                    "brand_perception",
-                    "product_perception",
-                    "event_evaluation",
-                    "list_answers",
-                    "other",
-                ]
-            ]
-            """Category of this column."""
-
-            do_group_duplicates: bool
-            """Determines whether duplicates should be grouped or not."""
-
-            do_show_translations: bool
-            """Determines whether the original or translated text is shown."""
 
             learns_from: Optional[LearnsForm]
             """Base column that this column learns from."""

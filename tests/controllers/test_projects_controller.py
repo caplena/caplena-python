@@ -115,9 +115,6 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertDictEqual(
             {
                 "reviewed_count": 0,
-                "category": None,
-                "do_group_duplicates": True,
-                "do_show_translations": False,
                 "learns_from": None,
             },
             our_strengths.metadata.dict(),
