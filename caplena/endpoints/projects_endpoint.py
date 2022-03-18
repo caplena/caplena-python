@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 from typing_extensions import Literal
 
 from caplena.api import ApiOrdering
+from caplena.constants import NOT_SET
 from caplena.endpoints.base_endpoint import BaseController, BaseObject, BaseResource
 from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
 from caplena.helpers import Helpers
@@ -25,8 +26,8 @@ class ProjectsController(BaseController):
         name: str,
         language: str,
         columns: List[Dict[str, Any]],
-        tags: Optional[List[str]] = None,
-        translation_engine: Optional[str] = None,
+        tags: Optional[List[str]] = NOT_SET,
+        translation_engine: Optional[str] = NOT_SET,
     ) -> "ProjectDetail":
         """Creates a new project.
 
@@ -97,6 +98,28 @@ class ProjectsController(BaseController):
             )
 
         return self.build_iterator(fetcher=fetcher, limit=limit, resource=ProjectList)
+
+    def update(
+        self,
+        *,
+        id: str,
+        name: Optional[str] = NOT_SET,
+        columns: Optional[List[Dict[str, Any]]] = NOT_SET,
+        tags: Optional[List[str]] = NOT_SET,
+    ) -> "ProjectDetail":
+        """Updates a project you have previously created.
+
+        :param id: The project identifier.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        json = self.api.build_payload(
+            name=name,
+            tags=tags,
+            columns=columns,
+        )
+
+        response = self.patch(path="/projects/{id}", path_params={"id": id}, json=json)
+        return self.build_response(response, resource=ProjectDetail)
 
     def append_rows(
         self,
