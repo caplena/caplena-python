@@ -604,7 +604,6 @@ class Row(BaseResource[ProjectsController]):
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "Row.DateColumn":
-            # TODO: handle datetime parsing here
             if obj["value"] is not None:
                 obj["value"] = Helpers.from_rfc3339_datetime(obj["value"])
 
