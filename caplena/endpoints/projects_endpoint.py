@@ -9,7 +9,7 @@ from caplena.endpoints.base_endpoint import BaseController, BaseObject, BaseReso
 from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
 from caplena.helpers import Helpers
 from caplena.http.http_response import HttpResponse
-from caplena.iterator import Iterator
+from caplena.iterator import CaplenaIterator
 
 # --- Controller --- #
 
@@ -75,7 +75,7 @@ class ProjectsController(BaseController):
         order_by: ApiOrdering = ApiOrdering.desc("last_modified"),
         limit: Optional[int] = None,
         filter: Optional[ProjectsFilter] = None,
-    ) -> "Iterator[ProjectList]":
+    ) -> "CaplenaIterator[ProjectList]":
         """Returns an iterator of all projects you have previously created. By default, the projects are returned
         in sorted order, with the most recently modified project appearing first.
 
@@ -170,7 +170,7 @@ class ProjectsController(BaseController):
         id: str,
         limit: Optional[int] = None,
         filter: Optional[RowsFilter] = None,
-    ) -> "Iterator[Row]":
+    ) -> "CaplenaIterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
         sorted order, with the least recently added row appearing first.
 
@@ -339,6 +339,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         "translation_status",
         "translation_engine",
     }
+    __mutable__ = {"name", "tags"}
 
     name: str
     """Name of this project."""
@@ -403,7 +404,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         *,
         limit: Optional[int] = None,
         filter: Optional[RowsFilter] = None,
-    ) -> "Iterator[Row]":
+    ) -> "CaplenaIterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
         sorted order, with the least recently added row appearing first.
 
@@ -427,7 +428,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         :raises caplena.api.ApiException: An API exception.
         """
         project = self.controller.retrieve(id=self.id)
-        self.refresh_from(attrs=project._attrs)
+        self._refresh_from(attrs=project._attrs)
 
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail":
@@ -518,7 +519,7 @@ class ProjectList(BaseResource[ProjectsController]):
         *,
         limit: Optional[int] = None,
         filter: Optional[RowsFilter] = None,
-    ) -> "Iterator[Row]":
+    ) -> "CaplenaIterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
         sorted order, with the least recently added row appearing first.
 
@@ -542,7 +543,7 @@ class ProjectList(BaseResource[ProjectsController]):
         :raises caplena.api.ApiException: An API exception.
         """
         project = self.controller.retrieve(id=self.id)
-        self.refresh_from(attrs=project._attrs)
+        self._refresh_from(attrs=project._attrs)
 
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectList":

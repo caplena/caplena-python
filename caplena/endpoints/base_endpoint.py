@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import (
     Any,
     Callable,
@@ -17,11 +18,12 @@ from typing import (
 from caplena.api import ApiFilter, ApiOrdering
 from caplena.api.api_requestor import ApiRequestor
 from caplena.configuration import Configuration
+from caplena.constants import NOT_SET
 from caplena.helpers import Helpers
 from caplena.http.http_response import HttpResponse
-from caplena.iterator import Iterator
+from caplena.iterator import CaplenaIterator
+from caplena.list import CaplenaList
 
-OBO = TypeVar("OBO", bound="BaseObject[Any]")
 BO = TypeVar("BO", bound="BaseObject[Any]")
 BC = TypeVar("BC", bound="BaseController")
 T = TypeVar("T")
@@ -42,6 +44,9 @@ class BaseController:
 
     def __init__(self, *, config: Configuration):
         self._config = config
+
+    def build(self, resource: Type[BO], obj: Dict[str, Any]) -> BO:
+        return resource.build_obj(obj=obj, controller=self, obj_exists=False)
 
     def get(
         self,
@@ -160,7 +165,7 @@ class BaseController:
 
     def build_response(self, response: HttpResponse, *, resource: Type[BO]) -> BO:
         json = self._retrieve_json_or_raise(response)
-        return resource.build_obj(obj=json, controller=self)
+        return resource.build_obj(obj=json, controller=self, obj_exists=True)
 
     def build_iterator(
         self,
@@ -168,15 +173,17 @@ class BaseController:
         fetcher: Callable[[int], HttpResponse],
         resource: Type[BO],
         limit: Optional[int] = None,
-    ) -> Iterator[BO]:
+    ) -> CaplenaIterator[BO]:
         def results_fetcher(page: int) -> Tuple[List[BO], bool, int]:
             response = fetcher(page)
             json = self._retrieve_json_or_raise(response)
 
-            results = [resource.build_obj(res, controller=self) for res in json["results"]]
+            results = [
+                resource.build_obj(res, controller=self, obj_exists=True) for res in json["results"]
+            ]
             return results, json["next_url"] is not None, json["count"]
 
-        return Iterator(
+        return CaplenaIterator(
             results_fetcher=results_fetcher,
             limit=limit,
         )
@@ -194,7 +201,7 @@ class BaseObject(Generic[BC]):
     __mutable__: ClassVar[Set[str]] = set()
 
     _attrs: Dict[str, Any]
-    _unpersisted_attributes: Set[str]
+    _previous: Dict[str, Any]
     _controller: Optional[BC]
 
     @property
@@ -207,56 +214,87 @@ class BaseObject(Generic[BC]):
             )
         return self._controller
 
-    @controller.setter
-    def controller(self, value: BC) -> None:
-        self._controller = value
-
-        for field in self.__fields__:
-            self._recursive_controller_set(self._attrs[field], value=value)
-
     def __init__(self, **attrs: Any):
         self._controller = None
+        self._attrs = {}
 
-        self.refresh_from(attrs=attrs)
-
-    def _recursive_controller_set(self, attr: Any, *, value: BC) -> None:
-        if isinstance(attr, BaseObject):
-            self._controller = value
-        elif isinstance(attr, list):
-            [self._recursive_controller_set(i, value=value) for i in attr]  # type: ignore
-
-    def refresh_from(self, *, attrs: Dict[str, Any]) -> None:
-        # pick only allowed attributes
-        partial = Helpers.partial_dict(attrs, self.__fields__)
-        validated = partial
-
-        self._attrs = validated
-        self._unpersisted_attributes = set()
+        self._refresh_from(attrs=attrs)
 
     def dict(self) -> Dict[str, Any]:
         resource: Dict[str, Any] = {}
         for field in self.__fields__:
             attr = self._attrs[field]
-            resource[field] = self._recursive_dict(attr)
+            resource[field] = self._rec_dict(attr)
 
         return resource
 
-    def _recursive_dict(self, attr: Any) -> Any:
+    def modified_dict(self) -> Any:
+        resource: Dict[str, Any] = {}
+        for field in self.__fields__:
+            if self._previous[field] != self._attrs[field]:
+                resource[field] = self._rec_modified_dict(
+                    previous=self._previous[field], next=self._attrs[field], field=field
+                )
+
+        return resource if resource != {} else NOT_SET
+
+    def _refresh_from(self, *, attrs: Dict[str, Any]) -> None:
+        self._previous = self._attrs
+        self._attrs = Helpers.partial_dict(attrs, self.__fields__)
+
+    def _prepare(
+        self,
+        *,
+        controller: Optional[BC],
+        obj_exists: bool = False,
+    ) -> None:
+        self._controller = controller
+        if obj_exists:
+            self._previous = deepcopy(self._attrs)
+
+        for field in self.__fields__:
+            self._rec_prepare(self._attrs[field], controller=controller, obj_exists=obj_exists)
+
+    def _rec_dict(self, attr: Any) -> Any:
         if isinstance(attr, BaseObject):
             return attr.dict()
-        elif isinstance(attr, list):
-            return [
-                self._recursive_dict(i) for i in attr
-            ]  # pyright: reportUnknownVariableType=false
+        elif isinstance(attr, CaplenaList):
+            return [self._rec_dict(i) for i in attr]  # pyright: reportUnknownVariableType=false
         else:
             return attr
+
+    def _rec_modified_dict(self, *, previous: Any, next: Any, field: str) -> Any:
+        if isinstance(next, BaseObject):
+            return next.modified_dict()
+        elif isinstance(next, CaplenaList):
+            if len(previous) != len(next):  # pyright: reportUnknownArgumentType=false
+                raise ValueError(
+                    "Failed computing the version difference, as the previous and new lists have a different length."
+                )
+
+            modified_list = [
+                self._rec_modified_dict(previous=p, next=n, field=f"{field}.{idx}")
+                for idx, (p, n) in enumerate(zip(previous, next))
+            ]
+            return [item for item in modified_list if item != NOT_SET]
+
+        else:
+            return next
+
+    def _rec_prepare(self, attr: Any, *, controller: Optional[BC], obj_exists: bool) -> None:
+        if isinstance(attr, BaseObject):
+            attr._prepare(
+                controller=controller, obj_exists=obj_exists
+            )  # pyright: reportUnknownMemberType=false
+        elif isinstance(attr, CaplenaList):
+            for i in attr:
+                self._rec_prepare(i, controller=controller, obj_exists=obj_exists)
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}()"
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name in self.__fields__ and name in self.__mutable__:
-            self._unpersisted_attributes.add(name)
             self._attrs[name] = value
         elif name in self.__fields__:
             raise AttributeError(
@@ -274,10 +312,30 @@ class BaseObject(Generic[BC]):
     def __delattr__(self, name: str) -> None:
         raise ValueError(f"{name}. HINT: You cannot delete any attributes.")
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, BaseObject):
+            return False
+
+        if self.__fields__ != other.__fields__:
+            return False
+
+        for field in self.__fields__:
+            if self._attrs[field] != other._attrs[field]:
+                return False
+
+        return True
+
     @classmethod
-    def build_obj(cls: Type[BO], obj: Dict[str, Any], *, controller: Optional[BC]) -> BO:
+    def build_obj(
+        cls: Type[BO],
+        obj: Dict[str, Any],
+        *,
+        controller: Optional[BC],
+        obj_exists: bool = False,
+    ) -> BO:
         instance = cls.parse_obj(obj)
-        instance.controller = controller
+        instance._prepare(controller=controller, obj_exists=obj_exists)
+
         return instance
 
     @classmethod
@@ -291,8 +349,8 @@ class BaseResource(BaseObject[BC]):
         return self._id
 
     def __init__(self, id: str, **attrs: Any):
-        super().__init__(**attrs)
         self._id = id
+        super().__init__(**attrs)
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(id={self._id})"
