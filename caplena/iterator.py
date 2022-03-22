@@ -4,7 +4,7 @@ from typing import Callable, Generic, List, Optional, Tuple, TypeVar
 T = TypeVar("T")
 
 
-class Iterator(Generic[T]):
+class CaplenaIterator(Generic[T]):
     """A lazy iterator, only fetches more results when the entries are iterated."""
 
     @property
@@ -61,7 +61,7 @@ class Iterator(Generic[T]):
     def __len__(self) -> int:
         return self.count if self._limit is None or self.count < self._limit else self._limit
 
-    def __iter__(self) -> "Iterator[T]":
+    def __iter__(self) -> "CaplenaIterator[T]":
         return type(self)(
             results_fetcher=self._results_fetcher,
             limit=self._limit,

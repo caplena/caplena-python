@@ -2,6 +2,9 @@ from typing import Any, Dict
 
 
 class _NOT_SET:
+    def __str__(self) -> str:
+        return "<NOT_SET>"
+
     def __copy__(self) -> Any:
         return NOT_SET
 
