@@ -219,9 +219,9 @@ class ApiFilterTests(unittest.TestCase):
             Pf.created(year__gt=[10, 20], year__lt=[20]),
         ]
         expected = [
-            "",
-            "",
-            "(created.year.gt={10,20}) & (created.year.lt={20})",
+            "ApiFilter()",
+            "ApiFilter()",
+            "ApiFilter((created.year.gt={10,20}) & (created.year.lt={20}))",
         ]
 
         self.assertListEqual(expected, [str(filt) for filt in filters])
@@ -245,11 +245,11 @@ class ApiFilterTests(unittest.TestCase):
             Pf.created(year__gt=10) | Pf.created(year__gt=None) | Pf.created(year__gt=12),
         ]
         expected = [
-            "(created.year.gt={2020})",
-            "(created.year.gt={10,20}) & (created.year.lt={20})",
-            "(created.year.gt={10})",
-            "(created.year.gt={10} | created.year.lt={2,4,8} | created.day={4})",
-            "(created.year.gt={10,12})",
+            "ApiFilter((created.year.gt={2020}))",
+            "ApiFilter((created.year.gt={10,20}) & (created.year.lt={20}))",
+            "ApiFilter((created.year.gt={10}))",
+            "ApiFilter((created.year.gt={10} | created.year.lt={2,4,8} | created.day={4}))",
+            "ApiFilter((created.year.gt={10,12}))",
         ]
 
         self.assertListEqual(expected, [str(filt) for filt in filters])
@@ -266,13 +266,13 @@ class ApiFilterTests(unittest.TestCase):
             & Pf.created(year__lt=[120, 130], year__gt=[1000, 2000]),  # noqa: W503
         ]
         expected = [
-            "(created.year.gt={2020})",
-            "(created.year.gt={10,20}) & (created.year.lt={20})",
-            "(created.year.gt={10})",
-            "(created.year.gt={10}) & (created.year.lt={2,4,8}) & (created.day={4})",
-            "(created.year.gt={10}) & (created.year.gt={12})",
-            "(created.year.gt={10,20,30}) & (created.month={1,2,3}) & (created.day={4,5,6}) & (created.year.gt={1000,2000}) & (created.year.lt={120,130}) "
-            "& (last_modified.year={2021}) & (last_modified.month={4,5,6})",
+            "ApiFilter((created.year.gt={2020}))",
+            "ApiFilter((created.year.gt={10,20}) & (created.year.lt={20}))",
+            "ApiFilter((created.year.gt={10}))",
+            "ApiFilter((created.year.gt={10}) & (created.year.lt={2,4,8}) & (created.day={4}))",
+            "ApiFilter((created.year.gt={10}) & (created.year.gt={12}))",
+            "ApiFilter((created.year.gt={10,20,30}) & (created.month={1,2,3}) & (created.day={4,5,6}) & (created.year.gt={1000,2000}) "
+            "& (created.year.lt={120,130}) & (last_modified.year={2021}) & (last_modified.month={4,5,6}))",
         ]
 
         self.assertListEqual(expected, [str(filt) for filt in filters])
@@ -284,9 +284,9 @@ class ApiFilterTests(unittest.TestCase):
             Pf.tags(["one-tag", "other-tag"]) | Pf.tags(None) | Pf.tags("third-tag"),
         ]
         expected = [
-            "(tags={one-tag})",
-            "(tags={one-tag,other-tag})",
-            "(tags={one-tag,other-tag,third-tag})",
+            "ApiFilter((tags={one-tag}))",
+            "ApiFilter((tags={one-tag,other-tag}))",
+            "ApiFilter((tags={one-tag,other-tag,third-tag}))",
         ]
 
         self.assertListEqual(expected, [str(filt) for filt in filters])
