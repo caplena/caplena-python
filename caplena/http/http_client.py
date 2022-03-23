@@ -1,7 +1,9 @@
 from enum import Enum
+from json import dumps
 from typing import Any, ClassVar, Dict, Iterable, List, Optional, Union
 
 from caplena.http.http_response import HttpResponse
+from caplena.http.json_encoder import JsonDateEncoder
 from caplena.logging.default_logger import DefaultLogger
 from caplena.logging.logger import Logger
 
@@ -48,6 +50,7 @@ class HttpClient:
     DEFAULT_TIMEOUT: ClassVar[int] = 120
     DEFAULT_RETRY: ClassVar[HttpRetry] = HttpRetry()
     DEFAULT_LOGGER: ClassVar[Logger] = DefaultLogger("http[shared]")
+    DEFAULT_ENCODER: ClassVar[JsonDateEncoder] = JsonDateEncoder()
 
     @property
     def identifier(self) -> str:
@@ -59,10 +62,12 @@ class HttpClient:
         timeout: int = DEFAULT_TIMEOUT,
         retry: HttpRetry = DEFAULT_RETRY,
         logger: Logger = DEFAULT_LOGGER,
+        encoder: JsonDateEncoder = DEFAULT_ENCODER,
     ):
         self.timeout = timeout
         self.retry = retry
         self.logger = logger
+        self.encoder = encoder
 
     def request(
         self,
@@ -76,10 +81,14 @@ class HttpClient:
     ) -> HttpResponse:
         timeout = self.get_timeout(timeout)
         retry = self.get_retry(retry)
-
         self.logger.info("Sending request to Caplena API", method=str(method), uri=uri)
+
+        data = None
+        headers = headers if headers is not None else {}
         if json is not None:
-            self.logger.debug("Sending request to Caplena API", json=str(json))
+            headers["content-type"] = "application/json"
+            data = dumps(json, cls=JsonDateEncoder)
+            self.logger.debug("Sending request to Caplena API", data=data)
 
         # TODO: handle retry here
         response = self.request_raw(
@@ -87,7 +96,7 @@ class HttpClient:
             method=method,
             timeout=timeout,
             headers=headers,
-            json=json,
+            data=data,
         )
         self.logger.debug(
             "Received response from server",
@@ -103,8 +112,8 @@ class HttpClient:
         *,
         method: HttpMethod,
         timeout: int,
-        headers: Optional[Dict[str, str]] = None,
-        json: Optional[Union[Dict[str, Any], List[Any]]] = None,
+        headers: Dict[str, str],
+        data: Optional[str] = None,
     ) -> HttpResponse:
         raise NotImplementedError("HttpClient subclasses must implement `request_raw`.")
 
