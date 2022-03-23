@@ -10,6 +10,7 @@ from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
 from caplena.helpers import Helpers
 from caplena.http.http_response import HttpResponse
 from caplena.iterator import CaplenaIterator
+from caplena.list import CaplenaList
 
 # --- Controller --- #
 
@@ -310,7 +311,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         description: str
         """Column description displayed for this column."""
 
-        topics: List[Topic]
+        topics: CaplenaList[Topic]
         """List of topics associated with this column."""
 
         metadata: Metadata
@@ -318,7 +319,9 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail.TextToAnalyze":
-            obj["topics"] = [cls.Topic.parse_obj(topic) for topic in obj["topics"]]
+            obj["topics"] = CaplenaList(
+                values=[cls.Topic.parse_obj(topic) for topic in obj["topics"]]
+            )
             obj["metadata"] = cls.Metadata.parse_obj(obj["metadata"])
             return super().parse_obj(obj)
 
@@ -360,7 +363,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
     """Base language for this project."""
     # fmt: on
 
-    columns: List[Column]
+    columns: CaplenaList[Column]
     """Columns for this projects."""
 
     created: datetime
@@ -430,14 +433,26 @@ class ProjectDetail(BaseResource[ProjectsController]):
         project = self.controller.retrieve(id=self.id)
         self._refresh_from(attrs=project._attrs)
 
+    def save(self) -> None:
+        """Saves the unpersisted properties of this project.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        modified_dict = self.modified_dict()
+        if modified_dict != NOT_SET:
+            project = self.controller.update(id=self.id, **modified_dict)
+            self._refresh_from(attrs=project._attrs)
+
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail":
-        obj["columns"] = [
-            cls.TextToAnalyze.parse_obj(column)
-            if column["type"] == "text_to_analyze"
-            else cls.Auxiliary.parse_obj(column)
-            for column in obj["columns"]
-        ]
+        obj["columns"] = CaplenaList(
+            values=[
+                cls.TextToAnalyze.parse_obj(column)
+                if column["type"] == "text_to_analyze"
+                else cls.Auxiliary.parse_obj(column)
+                for column in obj["columns"]
+            ]
+        )
         obj["created"] = Helpers.from_rfc3339_datetime(obj["created"])
         obj["last_modified"] = Helpers.from_rfc3339_datetime(obj["last_modified"])
 
@@ -544,6 +559,16 @@ class ProjectList(BaseResource[ProjectsController]):
         """
         project = self.controller.retrieve(id=self.id)
         self._refresh_from(attrs=project._attrs)
+
+    def save(self) -> None:
+        """Saves the unpersisted properties of this project.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        modified_dict = self.modified_dict()
+        if modified_dict != NOT_SET:
+            project = self.controller.update(id=self.id, **modified_dict)
+            self._refresh_from(attrs=project._attrs)
 
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectList":
