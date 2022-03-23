@@ -39,6 +39,9 @@ def project_create_payload() -> Dict[str, Any]:
                     },
                 ],
             },
+            {"type": "boolean", "ref": "boolean_col", "name": "Some example boolean"},
+            {"type": "text", "ref": "text_col", "name": "Some auxiliary text"},
+            {"type": "date", "ref": "date_col", "name": "Some date time values."},
         ],
     }
 
@@ -49,12 +52,21 @@ def project_rows_create_payload() -> List[Dict[str, Any]]:
             "columns": [
                 {"ref": "customer_age", "value": 120},
                 {"ref": "our_strengths", "value": "This is nice."},
+                {"ref": "boolean_col", "value": False},
+                {"ref": "text_col", "value": "iphone"},
+                {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
             ]
         },
         {
             "columns": [
                 {"ref": "customer_age", "value": None},
                 {"ref": "our_strengths", "value": "Some other text."},
+                {"ref": "boolean_col", "value": True},
+                {"ref": "text_col", "value": "oneplus"},
+                {
+                    "ref": "date_col",
+                    "value": datetime(year=2022, month=3, day=31, hour=14, minute=14, second=14),
+                },
             ]
         },
     ]
@@ -88,6 +100,8 @@ class ProjectsControllerTests(unittest.TestCase):
 
         return project
 
+    # ---- General Functionality ---- #
+
     def test_creating_a_project_succeeds(self) -> None:
         project = self.create_project()
 
@@ -102,11 +116,17 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertIsInstance(project.created, datetime)
         self.assertIsInstance(project.last_modified, datetime)
 
-        self.assertEqual(2, len(project.columns))
+        self.assertEqual(5, len(project.columns))
         self.assertIsInstance(project.columns[0], ProjectDetail.TextToAnalyze)
         self.assertIsInstance(project.columns[1], ProjectDetail.Auxiliary)
+        self.assertIsInstance(project.columns[2], ProjectDetail.Auxiliary)
+        self.assertIsInstance(project.columns[3], ProjectDetail.Auxiliary)
+        self.assertIsInstance(project.columns[4], ProjectDetail.Auxiliary)
         our_strengths = cast(ProjectDetail.TextToAnalyze, project.columns[0])
         customer_age = cast(ProjectDetail.Auxiliary, project.columns[1])
+        boolean_col = cast(ProjectDetail.Auxiliary, project.columns[2])
+        text_col = cast(ProjectDetail.Auxiliary, project.columns[3])
+        date_col = cast(ProjectDetail.Auxiliary, project.columns[4])
 
         self.assertEqual("our_strengths", our_strengths.ref)
         self.assertEqual("Do you like us?", our_strengths.name)
@@ -145,6 +165,18 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual("customer_age", customer_age.ref)
         self.assertEqual("Age of the customer", customer_age.name)
         self.assertEqual("numerical", customer_age.type)
+
+        self.assertEqual("boolean_col", boolean_col.ref)
+        self.assertEqual("Some example boolean", boolean_col.name)
+        self.assertEqual("boolean", boolean_col.type)
+
+        self.assertEqual("text_col", text_col.ref)
+        self.assertEqual("Some auxiliary text", text_col.name)
+        self.assertEqual("text", text_col.type)
+
+        self.assertEqual("date_col", date_col.ref)
+        self.assertEqual("Some date time values.", date_col.name)
+        self.assertEqual("date", date_col.type)
 
     def test_retrieving_a_project_succeeds(self) -> None:
         project = self.create_project()
@@ -195,6 +227,9 @@ class ProjectsControllerTests(unittest.TestCase):
         columns: List[Dict[str, Any]] = [
             {"ref": "customer_age", "value": None},
             {"ref": "our_strengths", "value": "Some other text."},
+            {"ref": "boolean_col", "value": False},
+            {"ref": "text_col", "value": None},
+            {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
         ]
         row = self.controller.append_row(id=project.id, columns=columns)
 
@@ -202,11 +237,14 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertIsInstance(row.created, datetime)
         self.assertIsInstance(row.last_modified, datetime)
 
-        self.assertEqual(2, len(row.columns))
+        self.assertEqual(5, len(row.columns))
         self.assertIsInstance(row.columns[0], Row.TextToAnalyzeColumn)
         self.assertIsInstance(row.columns[1], Row.NumericalColumn)
         our_strengths = cast(Row.TextToAnalyzeColumn, row.columns[0])
         customer_age = cast(Row.NumericalColumn, row.columns[1])
+        boolean_col = cast(Row.BooleanColumn, row.columns[2])
+        text_col = cast(Row.TextColumn, row.columns[3])
+        date_col = cast(Row.DateColumn, row.columns[4])
 
         self.assertEqual("our_strengths", our_strengths.ref)
         self.assertEqual("text_to_analyze", our_strengths.type)
@@ -223,6 +261,18 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual("numerical", customer_age.type)
         self.assertEqual(None, customer_age.value)
 
+        self.assertEqual("boolean_col", boolean_col.ref)
+        self.assertEqual("boolean", boolean_col.type)
+        self.assertEqual(False, boolean_col.value)
+
+        self.assertEqual("text_col", text_col.ref)
+        self.assertEqual("text", text_col.type)
+        self.assertEqual("", text_col.value)
+
+        self.assertEqual("date_col", date_col.ref)
+        self.assertEqual("date", date_col.type)
+        self.assertEqual(datetime(year=2020, month=10, day=10, hour=17), date_col.value)
+
     def test_listing_all_rows_succeeds(self) -> None:
         project = self.create_project()
         row1 = self.controller.append_row(
@@ -230,6 +280,9 @@ class ProjectsControllerTests(unittest.TestCase):
             columns=[
                 {"ref": "customer_age", "value": None},
                 {"ref": "our_strengths", "value": "Some other text."},
+                {"ref": "boolean_col", "value": False},
+                {"ref": "text_col", "value": "iphone"},
+                {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
             ],
         )
         row2 = self.controller.append_row(
@@ -237,6 +290,9 @@ class ProjectsControllerTests(unittest.TestCase):
             columns=[
                 {"ref": "customer_age", "value": 12},
                 {"ref": "our_strengths", "value": "This is my review. Very nice."},
+                {"ref": "boolean_col", "value": True},
+                {"ref": "text_col", "value": "samsung"},
+                {"ref": "date_col", "value": datetime(year=2000, month=4, day=4, hour=4)},
             ],
         )
         rows = [row1.dict(), row2.dict()]
@@ -255,6 +311,9 @@ class ProjectsControllerTests(unittest.TestCase):
             columns=[
                 {"ref": "customer_age", "value": None},
                 {"ref": "our_strengths", "value": "Some other text."},
+                {"ref": "boolean_col", "value": False},
+                {"ref": "text_col", "value": "iphone"},
+                {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
             ],
         )
 
@@ -276,6 +335,9 @@ class ProjectsControllerTests(unittest.TestCase):
             columns=[
                 {"ref": "customer_age", "value": 400},
                 {"ref": "our_strengths", "value": "Some other text."},
+                {"ref": "boolean_col", "value": False},
+                {"ref": "text_col", "value": "iphone"},
+                {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
             ],
         )
         retrieved = self.controller.retrieve_row(p_id=project.id, r_id=row.id)
