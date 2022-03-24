@@ -163,9 +163,15 @@ class BaseController:
 
         return response
 
-    def build_response(self, response: HttpResponse, *, resource: Type[BO]) -> BO:
+    def build_response(
+        self,
+        response: HttpResponse,
+        *,
+        resource: Type[BO],
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> BO:
         json = self._retrieve_json_or_raise(response)
-        return resource.build_obj(obj=json, controller=self, obj_exists=True)
+        return resource.build_obj(obj=json, controller=self, obj_exists=True, metadata=metadata)
 
     def build_iterator(
         self,
@@ -173,13 +179,15 @@ class BaseController:
         fetcher: Callable[[int], HttpResponse],
         resource: Type[BO],
         limit: Optional[int] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> CaplenaIterator[BO]:
         def results_fetcher(page: int) -> Tuple[List[BO], bool, int]:
             response = fetcher(page)
             json = self._retrieve_json_or_raise(response)
 
             results = [
-                resource.build_obj(res, controller=self, obj_exists=True) for res in json["results"]
+                resource.build_obj(res, controller=self, obj_exists=True, metadata=metadata)
+                for res in json["results"]
             ]
             return results, json["next_url"] is not None, json["count"]
 
@@ -202,6 +210,7 @@ class BaseObject(Generic[BC]):
 
     _attrs: Dict[str, Any]
     _previous: Dict[str, Any]
+    _metadata: Dict[str, Any]
     _controller: Optional[BC]
 
     @property
@@ -214,13 +223,23 @@ class BaseObject(Generic[BC]):
             )
         return self._controller
 
+    @property
+    def is_modified(self) -> bool:
+        return self._attrs != self._previous
+
     def __init__(self, **attrs: Any):
         self._controller = None
-        self._attrs = {}
-
-        self._refresh_from(attrs=attrs)
+        self._metadata = {}
+        self._previous = {}
+        self._attrs = Helpers.partial_dict(attrs, self.__fields__)
 
     def dict(self) -> Dict[str, Any]:
+        if self.is_modified:
+            raise ValueError(
+                "Cannot call `.dict()` on a modified object. HINT: Please call `.save()` to "
+                "propagate your updates to our API servers."
+            )
+
         resource: Dict[str, Any] = {}
         for field in self.__fields__:
             attr = self._attrs[field]
@@ -243,8 +262,8 @@ class BaseObject(Generic[BC]):
         return resource if resource != {} else NOT_SET
 
     def _refresh_from(self, *, attrs: Dict[str, Any]) -> None:
-        self._previous = self._attrs
         self._attrs = Helpers.partial_dict(attrs, self.__fields__)
+        self._previous = deepcopy(self._attrs)
 
     def _prepare(
         self,
@@ -298,6 +317,8 @@ class BaseObject(Generic[BC]):
         return f"{self.__class__.__name__}()"
 
     def __setattr__(self, name: str, value: Any) -> None:
+        # TODO: interface for patching can still be improved, currently customer has to
+        # manually instantiate the class instance, e.g. when adding new topics.
         if name in self.__fields__ and name in self.__mutable__:
             self._attrs[name] = value
         elif name in self.__fields__:
@@ -336,9 +357,11 @@ class BaseObject(Generic[BC]):
         *,
         controller: Optional[BC],
         obj_exists: bool = False,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> BO:
         instance = cls.parse_obj(obj)
         instance._prepare(controller=controller, obj_exists=obj_exists)
+        instance._metadata = metadata if metadata else {}
 
         return instance
 
