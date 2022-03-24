@@ -111,6 +111,9 @@ class ProjectsController(BaseController):
         """Updates a project you have previously created.
 
         :param id: The project identifier.
+        :param name: Project name, as displayed in the user interface.
+        :param columns: Columns of a project.
+        :param tags: Tags assigned to this project.
         :raises caplena.api.ApiException: An API exception.
         """
         json = self.api.build_payload(
@@ -163,7 +166,7 @@ class ProjectsController(BaseController):
             json=json,
         )
 
-        return self.build_response(response, resource=Row)
+        return self.build_response(response, resource=Row, metadata={"project": id})
 
     def list_rows(
         self,
@@ -192,7 +195,9 @@ class ProjectsController(BaseController):
                 filter=filter,
             )
 
-        return self.build_iterator(fetcher=fetcher, limit=limit, resource=Row)
+        return self.build_iterator(
+            fetcher=fetcher, limit=limit, resource=Row, metadata={"project": id}
+        )
 
     def retrieve_row(self, *, p_id: str, r_id: str) -> "Row":
         """Retrieves a row for a project you have previously created.
@@ -205,7 +210,37 @@ class ProjectsController(BaseController):
             path="/projects/{p_id}/rows/{r_id}",
             path_params={"p_id": p_id, "r_id": r_id},
         )
-        return self.build_response(response, resource=Row)
+        return self.build_response(response, resource=Row, metadata={"project": id})
+
+    def remove_row(self, *, p_id: str, r_id: str) -> None:
+        """Removes a previously created row.
+
+        :param p_id: The project identifier.
+        :param r_id: The row identifier.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        self.delete(path="/projects/{p_id}/rows/{r_id}", path_params={"p_id": p_id, "r_id": r_id})
+
+    def update_row(
+        self,
+        *,
+        p_id: str,
+        r_id: str,
+        columns: List[Dict[str, Any]],
+    ) -> "Row":
+        """Updates a row you have previously created.
+
+        :param p_id: The project identifier.
+        :param r_id: The row identifier.
+        :param columns: Columns for this row.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        json = self.api.build_payload(columns=columns)
+
+        response = self.patch(
+            path="/projects/{p_id}/rows/{r_id}", path_params={"p_id": p_id, "r_id": r_id}, json=json
+        )
+        return self.build_response(response, resource=Row, metadata={"project": id})
 
 
 # --- Resources & Objects--- #
@@ -611,6 +646,7 @@ class Row(BaseResource[ProjectsController]):
 
     class Column(BaseObject[ProjectsController]):
         __fields__ = {"ref", "type", "value"}
+        __mutable__ = {"value"}
 
         ref: str
         """Human-readable identifier for this column."""
@@ -620,6 +656,13 @@ class Row(BaseResource[ProjectsController]):
 
         value: Union[int, float, bool, None, str, datetime]
         """Value assigned to this column."""
+
+        def modified_dict(self) -> Any:
+            modified: Any = super().modified_dict()
+            if modified != NOT_SET:
+                modified["ref"] = self.ref
+
+            return modified
 
     class NumericalColumn(Column):
         type: Literal["numerical"]
@@ -666,6 +709,7 @@ class Row(BaseResource[ProjectsController]):
     class TextToAnalyzeColumn(Column):
         class Topic(BaseObject[ProjectsController]):
             __fields__ = {"id", "label", "category", "code", "sentiment_label", "sentiment"}
+            __mutable__ = {"sentiment"}
 
             id: str
             """Unique identifier for this topic."""
@@ -698,6 +742,7 @@ class Row(BaseResource[ProjectsController]):
             "translated_value",
             "topics",
         }
+        __mutable__ = {"value", "was_reviewed", "topics"}
 
         type: Literal["text_to_analyze"]
         """Type of this column."""
@@ -746,6 +791,42 @@ class Row(BaseResource[ProjectsController]):
 
     columns: CaplenaList[Column]
     """Columns for this row."""
+
+    def remove(self) -> None:
+        """Removes this row.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        self.controller.remove_row(p_id=self._metadata["project"], r_id=self.id)
+
+    def refresh(self) -> None:
+        """Refreshes the properties of this row.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        row = self.controller.retrieve_row(p_id=self._metadata["project"], r_id=self.id)
+        self._refresh_from(attrs=row._attrs)
+
+    def save(self) -> None:
+        """Saves the unpersisted properties of this row.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        modified_dict = self.modified_dict()
+        if modified_dict != NOT_SET:
+            row = self.controller.update_row(
+                p_id=self._metadata["project"],
+                r_id=self.id,
+                **modified_dict,
+            )
+            self._refresh_from(attrs=row._attrs)
+
+    def retrieve_project(self) -> "ProjectDetail":
+        """Retrieves the project that this row belongs to.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        return self.controller.retrieve(id=self._metadata["project"])
 
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]) -> "Row":
