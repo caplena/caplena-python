@@ -199,6 +199,7 @@ class ProjectsControllerTests(unittest.TestCase):
         project = self.create_project()
 
         # test: updating properties succeeds
+        expected_dict = project.dict()
         project.name = "MY SUPER NOVEL PROJECT NAME"
         project.tags = ["new", "tags", "are", "cool"]
         our_strengths: ProjectDetail.TextToAnalyze = project.columns[0]  # type: ignore
@@ -209,15 +210,28 @@ class ProjectsControllerTests(unittest.TestCase):
             {"project": project_to_learn_from.id, "ref": project_to_learn_from.columns[0].ref},
         )
         project.columns[1].name = "COOL NAME"
-        expected_dict = project.dict()
         project.save()
+        expected_dict["name"] = "MY SUPER NOVEL PROJECT NAME"
+        expected_dict["tags"] = ["new", "tags", "are", "cool"]
+        expected_dict["columns"][0].update(
+            {"name": "Do you still like us?", "description": "Please explain."}
+        )
+        expected_dict["columns"][0]["metadata"].update(
+            {
+                "learns_from": {
+                    "project": project_to_learn_from.id,
+                    "ref": project_to_learn_from.columns[0].ref,
+                }
+            }
+        )
+        expected_dict["columns"][1]["name"] = "COOL NAME"
         self.assertDictEqual(project.dict(), expected_dict)
 
         # test: resetting learns_from succeeds
         our_strengths: ProjectDetail.TextToAnalyze = project.columns[0]  # type: ignore
         our_strengths.metadata.learns_from = None
-        expected_dict = project.dict()
         project.save()
+        expected_dict["columns"][0]["metadata"]["learns_from"] = None
         self.assertDictEqual(project.dict(), expected_dict)
 
     def test_listing_all_projects_succeeds(self) -> None:
@@ -281,7 +295,11 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual(1, len(our_strengths.topics))
         topic = our_strengths.topics[0]
         self.assertRegex(topic.id, r"^cd_")
-        # TODO: what should be returned here?
+        self.assertEqual(topic.label, "Another Code Label")
+        self.assertEqual(topic.category, "ANOTHER_CATEGORY")
+        self.assertEqual(topic.code, 1)
+        self.assertEqual(topic.sentiment_label, "")
+        self.assertEqual(topic.sentiment, "neutral")
 
         self.assertEqual("customer_age", customer_age.ref)
         self.assertEqual("numerical", customer_age.type)
@@ -369,3 +387,51 @@ class ProjectsControllerTests(unittest.TestCase):
         retrieved = self.controller.retrieve_row(p_id=project.id, r_id=row.id)
 
         self.assertDictEqual(row.dict(), retrieved.dict())
+
+    def test_removing_a_row_succeeds(self) -> None:
+        project = self.create_project()
+
+        old_num_rows = self.controller.list_rows(id=project.id, limit=1).count
+        row = self.controller.append_row(
+            id=project.id,
+            columns=[
+                {"ref": "customer_age", "value": 400},
+                {"ref": "our_strengths", "value": "Some other text."},
+                {"ref": "boolean_col", "value": False},
+                {"ref": "text_col", "value": "iphone"},
+                {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
+            ],
+        )
+        interim_num_rows = self.controller.list_rows(id=project.id, limit=1).count
+        self.controller.remove_row(p_id=project.id, r_id=row.id)
+        new_num_rows = self.controller.list_rows(id=project.id, limit=1).count
+
+        self.assertEqual(old_num_rows, new_num_rows)
+        self.assertEqual(old_num_rows + 1, interim_num_rows)
+
+    def test_updating_a_row_succeeds(self) -> None:
+        project = self.create_project()
+        row = self.controller.append_row(
+            id=project.id,
+            columns=[
+                {"ref": "customer_age", "value": 400},
+                {"ref": "our_strengths", "value": "Some other text."},
+                {"ref": "boolean_col", "value": False},
+                {"ref": "text_col", "value": "iphone"},
+                {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
+            ],
+        )
+        expected_dict = row.dict()
+        our_strengths: Row.TextToAnalyzeColumn = row.columns[0]  # type: ignore
+        our_strengths.value = "this is a new text value."
+        our_strengths.was_reviewed = True
+        customer_age: Row.NumericalColumn = row.columns[1]  # type: ignore
+        customer_age.value = 100000
+        # TODO: add test for new topic column
+
+        row.save()
+        expected_dict["columns"][0].update(
+            {"value": "this is a new text value.", "was_reviewed": True}
+        )
+        expected_dict["columns"][1].update({"value": 100000})
+        self.assertDictEqual(row.dict(), expected_dict)
