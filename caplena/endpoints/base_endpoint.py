@@ -231,7 +231,11 @@ class BaseObject(Generic[BC]):
     def modified_dict(self) -> Any:
         resource: Dict[str, Any] = {}
         for field in self.__fields__:
-            if self._previous[field] != self._attrs[field]:
+            if field not in self._previous:
+                resource[field] = self._rec_modified_dict(
+                    previous=NOT_SET, next=self._attrs[field], field=field
+                )
+            elif self._previous[field] != self._attrs[field]:
                 resource[field] = self._rec_modified_dict(
                     previous=self._previous[field], next=self._attrs[field], field=field
                 )
