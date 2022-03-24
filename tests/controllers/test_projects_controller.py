@@ -194,6 +194,32 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual(old_num_projects, new_num_projects)
         self.assertEqual(old_num_projects + 1, interim_num_projects)
 
+    def test_updating_a_project_succeeds(self) -> None:
+        project_to_learn_from = self.create_project()
+        project = self.create_project()
+
+        # test: updating properties succeeds
+        project.name = "MY SUPER NOVEL PROJECT NAME"
+        project.tags = ["new", "tags", "are", "cool"]
+        our_strengths: ProjectDetail.TextToAnalyze = project.columns[0]  # type: ignore
+        our_strengths.name = "Do you still like us?"
+        our_strengths.description = "Please explain."
+        our_strengths.metadata.learns_from = self.controller.build(
+            ProjectDetail.TextToAnalyze.Metadata.LearnsForm,
+            {"project": project_to_learn_from.id, "ref": project_to_learn_from.columns[0].ref},
+        )
+        project.columns[1].name = "COOL NAME"
+        expected_dict = project.dict()
+        project.save()
+        self.assertDictEqual(project.dict(), expected_dict)
+
+        # test: resetting learns_from succeeds
+        our_strengths: ProjectDetail.TextToAnalyze = project.columns[0]  # type: ignore
+        our_strengths.metadata.learns_from = None
+        expected_dict = project.dict()
+        project.save()
+        self.assertDictEqual(project.dict(), expected_dict)
+
     def test_listing_all_projects_succeeds(self) -> None:
         project = self.create_project()
         projects = self.controller.list(limit=1)
