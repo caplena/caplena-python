@@ -216,6 +216,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
     class Column(BaseObject[ProjectsController]):
         __fields__ = {"ref", "name", "type"}
+        __mutable__ = {"name"}
 
         ref: str
         """Human-readable identifier for this column. The reference field
@@ -227,6 +228,14 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
         type: Literal["numerical", "boolean", "text", "date", "any", "text_to_analyze"]
         """Type of this column."""
+
+        def modified_dict(self) -> Any:
+            modified: Any = super().modified_dict()
+            if modified != NOT_SET:
+                modified["ref"] = self.ref
+                modified["type"] = self.type
+
+            return modified
 
     class TextToAnalyze(Column):
         class Topic(BaseResource[ProjectsController]):
@@ -285,6 +294,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         class Metadata(BaseObject[ProjectsController]):
             class LearnsForm(BaseObject[ProjectsController]):
                 __fields__ = {"project", "ref"}
+                __mutable__ = {"project", "ref"}
 
                 project: str
                 """Base project that this column learns from."""
@@ -296,6 +306,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
                 "reviewed_count",
                 "learns_from",
             }
+            __mutable__ = {"learns_from"}
 
             reviewed_count: int
             """Number of reviewed rows for this column."""
@@ -304,6 +315,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
             """Base column that this column learns from."""
 
         __fields__ = {"ref", "name", "type", "description", "topics", "metadata"}
+        __mutable__ = {"name", "description"}
 
         type: Literal["text_to_analyze"]
         """Type of this column."""
@@ -473,6 +485,7 @@ class ProjectList(BaseResource[ProjectsController]):
         "translation_status",
         "translation_engine",
     }
+    __mutable__ = {"name", "tags"}
 
     name: str
     """Name of this project."""
@@ -713,12 +726,14 @@ class Row(BaseResource[ProjectsController]):
         translated_value: Optional[str]
         """Translated value if translation is enabled for this column."""
 
-        topics: List[Topic]
+        topics: CaplenaList[Topic]
         """Topics matching the value of this column. If no topics match, an empty array is returned."""
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "Row.TextToAnalyzeColumn":
-            obj["topics"] = [cls.Topic.parse_obj(topic) for topic in obj["topics"]]
+            obj["topics"] = CaplenaList(
+                values=[cls.Topic.parse_obj(topic) for topic in obj["topics"]]
+            )
             return super().parse_obj(obj)
 
     __fields__ = {"created", "last_modified", "columns"}
@@ -729,7 +744,7 @@ class Row(BaseResource[ProjectsController]):
     last_modified: datetime
     """Timestamp at which this row was last updated."""
 
-    columns: List[Column]
+    columns: CaplenaList[Column]
     """Columns for this row."""
 
     @classmethod
@@ -742,9 +757,9 @@ class Row(BaseResource[ProjectsController]):
             "text": cls.TextColumn,
             "text_to_analyze": cls.TextToAnalyzeColumn,
         }
-        obj["columns"] = [
-            type_to_column[column["type"]].parse_obj(column) for column in obj["columns"]
-        ]
+        obj["columns"] = CaplenaList(
+            values=[type_to_column[column["type"]].parse_obj(column) for column in obj["columns"]]
+        )
         obj["created"] = Helpers.from_rfc3339_datetime(obj["created"])
         obj["last_modified"] = Helpers.from_rfc3339_datetime(obj["last_modified"])
 
