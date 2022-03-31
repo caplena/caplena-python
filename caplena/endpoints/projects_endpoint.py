@@ -37,6 +37,8 @@ class ProjectsController(BaseController):
         :param columns: Columns of a project define its schema. In a sense, every project column corresponds to
             exactly one column in an Excel sheet. The four column types numerical, date, boolean and text are
             auxiliary columns, meaning that they won't be analyzed, but they can be used to visualize your results.
+            Please note that for columns of type `numerical`, its integer values must be between `-(2^53-1)` and
+            `2^53-1`. For bigger numbers, please use a column of type `text`.
         :param tags: Tags assigned to this project. If omitted, no tags are assigned.
         :param translation_engine: Translation engine used to translate rows into the base language of this project.
             If omitted, no translation will be performed.
