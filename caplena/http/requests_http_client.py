@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, Optional
 
 import requests
 from requests.sessions import Session
@@ -28,13 +28,13 @@ class RequestsHttpClient(HttpClient):
         *,
         method: HttpMethod,
         timeout: int,
-        headers: Optional[Dict[str, str]] = None,
-        json: Optional[Union[Dict[str, Any], List[Any]]] = None,
+        headers: Dict[str, str],
+        data: Optional[str] = None,
     ) -> HttpResponse:
         response = self.session.request(
             url=uri,
             method=method.method,
-            json=json,
+            data=data,
             headers=headers,
             timeout=timeout,
         )

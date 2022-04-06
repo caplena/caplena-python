@@ -51,7 +51,7 @@ class ApiFilter:
                     str_values = ",".join([str(value) for value in values])
                     stringified_literals.append(f"{filt_name}={{{str_values}}}")
                 stringified_clauses.append("(" + " | ".join(stringified_literals) + ")")
-        return " & ".join(stringified_clauses)
+        return "ApiFilter(" + " & ".join(stringified_clauses) + ")"
 
     def __and__(self: U, other: U) -> U:
         """Creates and returns the immutable conjunction of two separate filters. The original

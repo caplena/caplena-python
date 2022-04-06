@@ -4,11 +4,13 @@ from typing import Any, Dict, List, Optional, Union
 from typing_extensions import Literal
 
 from caplena.api import ApiOrdering
+from caplena.constants import NOT_SET
 from caplena.endpoints.base_endpoint import BaseController, BaseObject, BaseResource
 from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
 from caplena.helpers import Helpers
 from caplena.http.http_response import HttpResponse
-from caplena.iterator import Iterator
+from caplena.iterator import CaplenaIterator
+from caplena.list import CaplenaList
 
 # --- Controller --- #
 
@@ -25,8 +27,8 @@ class ProjectsController(BaseController):
         name: str,
         language: str,
         columns: List[Dict[str, Any]],
-        tags: Optional[List[str]] = None,
-        translation_engine: Optional[str] = None,
+        tags: Optional[List[str]] = NOT_SET,
+        translation_engine: Optional[str] = NOT_SET,
     ) -> "ProjectDetail":
         """Creates a new project.
 
@@ -35,6 +37,8 @@ class ProjectsController(BaseController):
         :param columns: Columns of a project define its schema. In a sense, every project column corresponds to
             exactly one column in an Excel sheet. The four column types numerical, date, boolean and text are
             auxiliary columns, meaning that they won't be analyzed, but they can be used to visualize your results.
+            Please note that for columns of type `numerical`, its integer values must be between `-(2^53-1)` and
+            `2^53-1`. For bigger numbers, please use a column of type `text`.
         :param tags: Tags assigned to this project. If omitted, no tags are assigned.
         :param translation_engine: Translation engine used to translate rows into the base language of this project.
             If omitted, no translation will be performed.
@@ -74,7 +78,7 @@ class ProjectsController(BaseController):
         order_by: ApiOrdering = ApiOrdering.desc("last_modified"),
         limit: Optional[int] = None,
         filter: Optional[ProjectsFilter] = None,
-    ) -> "Iterator[ProjectList]":
+    ) -> "CaplenaIterator[ProjectList]":
         """Returns an iterator of all projects you have previously created. By default, the projects are returned
         in sorted order, with the most recently modified project appearing first.
 
@@ -97,6 +101,31 @@ class ProjectsController(BaseController):
             )
 
         return self.build_iterator(fetcher=fetcher, limit=limit, resource=ProjectList)
+
+    def update(
+        self,
+        *,
+        id: str,
+        name: Optional[str] = NOT_SET,
+        columns: Optional[List[Dict[str, Any]]] = NOT_SET,
+        tags: Optional[List[str]] = NOT_SET,
+    ) -> "ProjectDetail":
+        """Updates a project you have previously created.
+
+        :param id: The project identifier.
+        :param name: Project name, as displayed in the user interface.
+        :param columns: Columns of a project.
+        :param tags: Tags assigned to this project.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        json = self.api.build_payload(
+            name=name,
+            tags=tags,
+            columns=columns,
+        )
+
+        response = self.patch(path="/projects/{id}", path_params={"id": id}, json=json)
+        return self.build_response(response, resource=ProjectDetail)
 
     def append_rows(
         self,
@@ -139,7 +168,7 @@ class ProjectsController(BaseController):
             json=json,
         )
 
-        return self.build_response(response, resource=Row)
+        return self.build_response(response, resource=Row, metadata={"project": id})
 
     def list_rows(
         self,
@@ -147,7 +176,7 @@ class ProjectsController(BaseController):
         id: str,
         limit: Optional[int] = None,
         filter: Optional[RowsFilter] = None,
-    ) -> "Iterator[Row]":
+    ) -> "CaplenaIterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
         sorted order, with the least recently added row appearing first.
 
@@ -168,7 +197,9 @@ class ProjectsController(BaseController):
                 filter=filter,
             )
 
-        return self.build_iterator(fetcher=fetcher, limit=limit, resource=Row)
+        return self.build_iterator(
+            fetcher=fetcher, limit=limit, resource=Row, metadata={"project": id}
+        )
 
     def retrieve_row(self, *, p_id: str, r_id: str) -> "Row":
         """Retrieves a row for a project you have previously created.
@@ -181,7 +212,37 @@ class ProjectsController(BaseController):
             path="/projects/{p_id}/rows/{r_id}",
             path_params={"p_id": p_id, "r_id": r_id},
         )
-        return self.build_response(response, resource=Row)
+        return self.build_response(response, resource=Row, metadata={"project": id})
+
+    def remove_row(self, *, p_id: str, r_id: str) -> None:
+        """Removes a previously created row.
+
+        :param p_id: The project identifier.
+        :param r_id: The row identifier.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        self.delete(path="/projects/{p_id}/rows/{r_id}", path_params={"p_id": p_id, "r_id": r_id})
+
+    def update_row(
+        self,
+        *,
+        p_id: str,
+        r_id: str,
+        columns: List[Dict[str, Any]],
+    ) -> "Row":
+        """Updates a row you have previously created.
+
+        :param p_id: The project identifier.
+        :param r_id: The row identifier.
+        :param columns: Columns for this row.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        json = self.api.build_payload(columns=columns)
+
+        response = self.patch(
+            path="/projects/{p_id}/rows/{r_id}", path_params={"p_id": p_id, "r_id": r_id}, json=json
+        )
+        return self.build_response(response, resource=Row, metadata={"project": id})
 
 
 # --- Resources & Objects--- #
@@ -192,6 +253,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
     class Column(BaseObject[ProjectsController]):
         __fields__ = {"ref", "name", "type"}
+        __mutable__ = {"name"}
 
         ref: str
         """Human-readable identifier for this column. The reference field
@@ -203,6 +265,14 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
         type: Literal["numerical", "boolean", "text", "date", "any", "text_to_analyze"]
         """Type of this column."""
+
+        def modified_dict(self) -> Any:
+            modified: Any = super().modified_dict()
+            if modified != NOT_SET:
+                modified["ref"] = self.ref
+                modified["type"] = self.type
+
+            return modified
 
     class TextToAnalyze(Column):
         class Topic(BaseResource[ProjectsController]):
@@ -261,6 +331,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         class Metadata(BaseObject[ProjectsController]):
             class LearnsForm(BaseObject[ProjectsController]):
                 __fields__ = {"project", "ref"}
+                __mutable__ = {"project", "ref"}
 
                 project: str
                 """Base project that this column learns from."""
@@ -270,38 +341,18 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
             __fields__ = {
                 "reviewed_count",
-                "category",
-                "do_group_duplicates",
-                "do_show_translations",
                 "learns_from",
             }
+            __mutable__ = {"learns_from"}
 
             reviewed_count: int
             """Number of reviewed rows for this column."""
-
-            category: Optional[
-                Literal[
-                    "customer_satisfaction",
-                    "employee_feedback",
-                    "brand_perception",
-                    "product_perception",
-                    "event_evaluation",
-                    "list_answers",
-                    "other",
-                ]
-            ]
-            """Category of this column."""
-
-            do_group_duplicates: bool
-            """Determines whether duplicates should be grouped or not."""
-
-            do_show_translations: bool
-            """Determines whether the original or translated text is shown."""
 
             learns_from: Optional[LearnsForm]
             """Base column that this column learns from."""
 
         __fields__ = {"ref", "name", "type", "description", "topics", "metadata"}
+        __mutable__ = {"name", "description"}
 
         type: Literal["text_to_analyze"]
         """Type of this column."""
@@ -309,7 +360,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         description: str
         """Column description displayed for this column."""
 
-        topics: List[Topic]
+        topics: CaplenaList[Topic]
         """List of topics associated with this column."""
 
         metadata: Metadata
@@ -317,7 +368,9 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail.TextToAnalyze":
-            obj["topics"] = [cls.Topic.parse_obj(topic) for topic in obj["topics"]]
+            obj["topics"] = CaplenaList(
+                values=[cls.Topic.parse_obj(topic) for topic in obj["topics"]]
+            )
             obj["metadata"] = cls.Metadata.parse_obj(obj["metadata"])
             return super().parse_obj(obj)
 
@@ -338,6 +391,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         "translation_status",
         "translation_engine",
     }
+    __mutable__ = {"name", "tags"}
 
     name: str
     """Name of this project."""
@@ -358,7 +412,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
     """Base language for this project."""
     # fmt: on
 
-    columns: List[Column]
+    columns: CaplenaList[Column]
     """Columns for this projects."""
 
     created: datetime
@@ -402,7 +456,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         *,
         limit: Optional[int] = None,
         filter: Optional[RowsFilter] = None,
-    ) -> "Iterator[Row]":
+    ) -> "CaplenaIterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
         sorted order, with the least recently added row appearing first.
 
@@ -426,16 +480,28 @@ class ProjectDetail(BaseResource[ProjectsController]):
         :raises caplena.api.ApiException: An API exception.
         """
         project = self.controller.retrieve(id=self.id)
-        self.refresh_from(attrs=project._attrs)
+        self._refresh_from(attrs=project._attrs)
+
+    def save(self) -> None:
+        """Saves the unpersisted properties of this project.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        modified_dict = self.modified_dict()
+        if modified_dict != NOT_SET:
+            project = self.controller.update(id=self.id, **modified_dict)
+            self._refresh_from(attrs=project._attrs)
 
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail":
-        obj["columns"] = [
-            cls.TextToAnalyze.parse_obj(column)
-            if column["type"] == "text_to_analyze"
-            else cls.Auxiliary.parse_obj(column)
-            for column in obj["columns"]
-        ]
+        obj["columns"] = CaplenaList(
+            values=[
+                cls.TextToAnalyze.parse_obj(column)
+                if column["type"] == "text_to_analyze"
+                else cls.Auxiliary.parse_obj(column)
+                for column in obj["columns"]
+            ]
+        )
         obj["created"] = Helpers.from_rfc3339_datetime(obj["created"])
         obj["last_modified"] = Helpers.from_rfc3339_datetime(obj["last_modified"])
 
@@ -456,6 +522,7 @@ class ProjectList(BaseResource[ProjectsController]):
         "translation_status",
         "translation_engine",
     }
+    __mutable__ = {"name", "tags"}
 
     name: str
     """Name of this project."""
@@ -517,7 +584,7 @@ class ProjectList(BaseResource[ProjectsController]):
         *,
         limit: Optional[int] = None,
         filter: Optional[RowsFilter] = None,
-    ) -> "Iterator[Row]":
+    ) -> "CaplenaIterator[Row]":
         """Returns a list of all rows you have previously created for this project. The rows are returned in
         sorted order, with the least recently added row appearing first.
 
@@ -541,7 +608,17 @@ class ProjectList(BaseResource[ProjectsController]):
         :raises caplena.api.ApiException: An API exception.
         """
         project = self.controller.retrieve(id=self.id)
-        self.refresh_from(attrs=project._attrs)
+        self._refresh_from(attrs=project._attrs)
+
+    def save(self) -> None:
+        """Saves the unpersisted properties of this project.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        modified_dict = self.modified_dict()
+        if modified_dict != NOT_SET:
+            project = self.controller.update(id=self.id, **modified_dict)
+            self._refresh_from(attrs=project._attrs)
 
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectList":
@@ -571,6 +648,7 @@ class Row(BaseResource[ProjectsController]):
 
     class Column(BaseObject[ProjectsController]):
         __fields__ = {"ref", "type", "value"}
+        __mutable__ = {"value"}
 
         ref: str
         """Human-readable identifier for this column."""
@@ -580,6 +658,13 @@ class Row(BaseResource[ProjectsController]):
 
         value: Union[int, float, bool, None, str, datetime]
         """Value assigned to this column."""
+
+        def modified_dict(self) -> Any:
+            modified: Any = super().modified_dict()
+            if modified != NOT_SET:
+                modified["ref"] = self.ref
+
+            return modified
 
     class NumericalColumn(Column):
         type: Literal["numerical"]
@@ -604,7 +689,6 @@ class Row(BaseResource[ProjectsController]):
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "Row.DateColumn":
-            # TODO: handle datetime parsing here
             if obj["value"] is not None:
                 obj["value"] = Helpers.from_rfc3339_datetime(obj["value"])
 
@@ -627,6 +711,7 @@ class Row(BaseResource[ProjectsController]):
     class TextToAnalyzeColumn(Column):
         class Topic(BaseObject[ProjectsController]):
             __fields__ = {"id", "label", "category", "code", "sentiment_label", "sentiment"}
+            __mutable__ = {"sentiment"}
 
             id: str
             """Unique identifier for this topic."""
@@ -659,6 +744,7 @@ class Row(BaseResource[ProjectsController]):
             "translated_value",
             "topics",
         }
+        __mutable__ = {"value", "was_reviewed", "topics"}
 
         type: Literal["text_to_analyze"]
         """Type of this column."""
@@ -687,12 +773,14 @@ class Row(BaseResource[ProjectsController]):
         translated_value: Optional[str]
         """Translated value if translation is enabled for this column."""
 
-        topics: List[Topic]
+        topics: CaplenaList[Topic]
         """Topics matching the value of this column. If no topics match, an empty array is returned."""
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "Row.TextToAnalyzeColumn":
-            obj["topics"] = [cls.Topic.parse_obj(topic) for topic in obj["topics"]]
+            obj["topics"] = CaplenaList(
+                values=[cls.Topic.parse_obj(topic) for topic in obj["topics"]]
+            )
             return super().parse_obj(obj)
 
     __fields__ = {"created", "last_modified", "columns"}
@@ -703,8 +791,44 @@ class Row(BaseResource[ProjectsController]):
     last_modified: datetime
     """Timestamp at which this row was last updated."""
 
-    columns: List[Column]
+    columns: CaplenaList[Column]
     """Columns for this row."""
+
+    def remove(self) -> None:
+        """Removes this row.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        self.controller.remove_row(p_id=self._metadata["project"], r_id=self.id)
+
+    def refresh(self) -> None:
+        """Refreshes the properties of this row.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        row = self.controller.retrieve_row(p_id=self._metadata["project"], r_id=self.id)
+        self._refresh_from(attrs=row._attrs)
+
+    def save(self) -> None:
+        """Saves the unpersisted properties of this row.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        modified_dict = self.modified_dict()
+        if modified_dict != NOT_SET:
+            row = self.controller.update_row(
+                p_id=self._metadata["project"],
+                r_id=self.id,
+                **modified_dict,
+            )
+            self._refresh_from(attrs=row._attrs)
+
+    def retrieve_project(self) -> "ProjectDetail":
+        """Retrieves the project that this row belongs to.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        return self.controller.retrieve(id=self._metadata["project"])
 
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]) -> "Row":
@@ -716,9 +840,9 @@ class Row(BaseResource[ProjectsController]):
             "text": cls.TextColumn,
             "text_to_analyze": cls.TextToAnalyzeColumn,
         }
-        obj["columns"] = [
-            type_to_column[column["type"]].parse_obj(column) for column in obj["columns"]
-        ]
+        obj["columns"] = CaplenaList(
+            values=[type_to_column[column["type"]].parse_obj(column) for column in obj["columns"]]
+        )
         obj["created"] = Helpers.from_rfc3339_datetime(obj["created"])
         obj["last_modified"] = Helpers.from_rfc3339_datetime(obj["last_modified"])
 

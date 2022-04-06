@@ -4,7 +4,7 @@ from typing import Callable, Generic, List, Optional, Tuple, TypeVar
 T = TypeVar("T")
 
 
-class Iterator(Generic[T]):
+class CaplenaIterator(Generic[T]):
     """A lazy iterator, only fetches more results when the entries are iterated."""
 
     @property
@@ -25,7 +25,7 @@ class Iterator(Generic[T]):
         results: Optional[List[T]] = None,
         total_count: Optional[int] = None,
         limit: Optional[int] = None,
-        has_next: bool = True
+        has_next: bool = True,
     ):
         self._results_fetcher = results_fetcher
         self._limit = limit
@@ -38,6 +38,15 @@ class Iterator(Generic[T]):
         self._results: List[T] = [] if results is None else results
         self._total_count: Optional[int] = total_count
         self._has_next: bool = has_next
+
+    def __str__(self) -> str:
+        # note: if nothing has been fetched yet, this will trigger the inital fetch
+        count = self.count
+
+        results = ", ".join([str(res) for res in self._results])
+        if len(self._results) < count:
+            results += ", ..."
+        return f"Iterator(count={count}, results=[{results}])"
 
     def _retrieve_next_page(self) -> None:
         self._current_page += 1
@@ -52,7 +61,7 @@ class Iterator(Generic[T]):
     def __len__(self) -> int:
         return self.count if self._limit is None or self.count < self._limit else self._limit
 
-    def __iter__(self) -> "Iterator[T]":
+    def __iter__(self) -> "CaplenaIterator[T]":
         return type(self)(
             results_fetcher=self._results_fetcher,
             limit=self._limit,

@@ -23,6 +23,12 @@ class ApiOrdering:
             stringified_ordering.append(f"{direction}:{name}")
         return {"order_by": ";".join(stringified_ordering)}
 
+    def __str__(self) -> str:
+        stringified_ordering: List[str] = []
+        for (direction, name) in self._ordering:
+            stringified_ordering.append(f"{direction}({name})")
+        return "ApiOrdering(" + ", ".join(stringified_ordering) + ")"
+
     @classmethod
     def asc(cls: Type[T], name: str) -> T:
         return cls(ordering=[("asc", name)])
