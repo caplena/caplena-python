@@ -4,10 +4,10 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "caplena"
-version = "0.0.3"
+version = "0.0.4"
 authors = [{name = "Caplena", email = "support@caplena.com"}]
-maintainers = [{name = "Nico Haenggi", email = "nico@caplena.com"}]
-keywords = ["caplena", "api", "nlp", "market research"]
+maintainers = [{name = "Pascal de Buren", email = "pascal@caplena.com"}]
+keywords = ["caplena", "api", "nlp", "customer feedback"]
 readme = "README.md"
 classifiers = [
     "Development Status :: 4 - Beta",
