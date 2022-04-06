@@ -427,11 +427,16 @@ class ProjectsControllerTests(unittest.TestCase):
         our_strengths.was_reviewed = True
         customer_age: Row.NumericalColumn = row.columns[1]  # type: ignore
         customer_age.value = 100000
-        # TODO: add test for new topic column
 
         row.save()
+        row_dict = row.dict()
         expected_dict["columns"][0].update(
             {"value": "this is a new text value.", "was_reviewed": True}
         )
+        # computed fields are updated when the value is changed, so don't compare them
+        computed_fields = {"sentiment_overall", "translated_value", "topics"}
+        for computed_field in computed_fields:
+            expected_dict["columns"][0].pop(computed_field)
+            row_dict["columns"][0].pop(computed_field)
         expected_dict["columns"][1].update({"value": 100000})
-        self.assertDictEqual(row.dict(), expected_dict)
+        self.assertDictEqual(row_dict, expected_dict)
