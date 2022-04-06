@@ -56,7 +56,7 @@ Filters
 Iterator
 --------
 
-.. autoclass:: caplena.iterator.Iterator
+.. autoclass:: caplena.iterator.CaplenaIterator
     :members:
 
 Exceptions
