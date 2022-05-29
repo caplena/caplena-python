@@ -18,6 +18,27 @@ documentation is for you.
 
   getting-started
 
+Creating Projects and adding rows
+---------------
+
+Learn how to create projects and upload your data to Caplena.
+
+.. toctree::
+  :maxdepth: 3
+
+  creating-projects
+
+Retrieving Projects and results
+---------------
+
+Understand how to fetch previously uploaded data and how to access
+the results of the analysis performed by Caplena.
+
+.. toctree::
+  :maxdepth: 3
+
+  retrieving-results
+
 
 API Reference
 -------------
