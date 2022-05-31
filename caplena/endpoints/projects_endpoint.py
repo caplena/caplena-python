@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 from typing_extensions import Literal
 
 from caplena.api import ApiOrdering
-from caplena.constants import NOT_SET
+from caplena.constants import LIST_PAGINATION_LIMIT, NOT_SET
 from caplena.endpoints.base_endpoint import BaseController, BaseObject, BaseResource
 from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
 from caplena.helpers import Helpers
@@ -78,7 +78,7 @@ class ProjectsController(BaseController):
         order_by: ApiOrdering = ApiOrdering.desc("last_modified"),
         limit: Optional[int] = None,
         filter: Optional[ProjectsFilter] = None,
-    ) -> "CaplenaIterator[ProjectList]":
+    ) -> "CaplenaIterator[ListedProject]":
         """Returns an iterator of all projects you have previously created. By default, the projects are returned
         in sorted order, with the most recently modified project appearing first.
 
@@ -94,13 +94,13 @@ class ProjectsController(BaseController):
                 path="/projects",
                 query_params={
                     "page": str(page),
-                    "limit": str(10),
+                    "limit": str(LIST_PAGINATION_LIMIT),
                 },
                 filter=filter,
                 order_by=order_by,
             )
 
-        return self.build_iterator(fetcher=fetcher, limit=limit, resource=ProjectList)
+        return self.build_iterator(fetcher=fetcher, limit=limit, resource=ListedProject)
 
     def update(
         self,
@@ -192,7 +192,7 @@ class ProjectsController(BaseController):
                 path_params={"id": id},
                 query_params={
                     "page": str(page),
-                    "limit": str(30),
+                    "limit": str(LIST_PAGINATION_LIMIT),
                 },
                 filter=filter,
             )
@@ -274,6 +274,9 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
             return modified
 
+        def __repr__(self) -> str:
+            return f"ProjectColumn(ref={self.ref}, type={self.type}, name={self.name})"
+
     class TextToAnalyze(Column):
         class Topic(BaseResource[ProjectsController]):
             class Sentiment(BaseObject[ProjectsController]):
@@ -284,6 +287,9 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
                 label: str
                 """Label for this topic sentiment."""
+
+                def __repr__(self) -> str:
+                    return f"TopicSentiment(code={self.code}, label={self.label})"
 
             __fields__ = {
                 "label",
@@ -319,6 +325,12 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
             sentiment_positive: Sentiment
             """Positive topic sentiment."""
+
+            def __repr__(self) -> str:
+                return (
+                    f"{self.__class__.__name__}(label={self.label}, category={self.category}, "
+                    f"sentiment_enabled={self.sentiment_enabled})"
+                )
 
             @classmethod
             def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail.TextToAnalyze.Topic":
@@ -365,6 +377,9 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
         metadata: Metadata
         """Metadata associated with this column."""
+
+        def __repr__(self) -> str:
+            return f"ProjectColumn(ref={self.ref}, type={self.type}, name={self.name}, topics={self.topics.__repr__()})"
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail.TextToAnalyze":
@@ -426,6 +441,9 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
     translation_engine: Optional[str]
     """Translation engine used for translating :code:`text_to_analyze` columns."""
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(id={self.id}, name={self.name}, columns={self.columns.__repr__()})"
 
     def remove(self) -> None:
         """Removes this project.
@@ -508,7 +526,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         return super().parse_obj(obj)
 
 
-class ProjectList(BaseResource[ProjectsController]):
+class ListedProject(BaseResource[ProjectsController]):
     """The project list resource."""
 
     __fields__ = {
@@ -554,6 +572,9 @@ class ProjectList(BaseResource[ProjectsController]):
 
     translation_engine: Optional[str]
     """Translation engine used for translating :code:`text_to_analyze` columns."""
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(id={self.id}, name={self.name})"
 
     def remove(self) -> None:
         """Removes this project.
@@ -621,7 +642,7 @@ class ProjectList(BaseResource[ProjectsController]):
             self._refresh_from(attrs=project._attrs)
 
     @classmethod
-    def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectList":
+    def parse_obj(cls, obj: Dict[str, Any]) -> "ListedProject":
         obj["created"] = Helpers.from_rfc3339_datetime(obj["created"])
         obj["last_modified"] = Helpers.from_rfc3339_datetime(obj["last_modified"])
 
@@ -658,6 +679,9 @@ class Row(BaseResource[ProjectsController]):
 
         value: Union[int, float, bool, None, str, datetime]
         """Value assigned to this column."""
+
+        def __repr__(self) -> str:
+            return f"RowColumn(ref={self.ref}, type={self.type}, value={self.value})"
 
         def modified_dict(self) -> Any:
             modified: Any = super().modified_dict()
@@ -734,6 +758,9 @@ class Row(BaseResource[ProjectsController]):
             """Inferred sentiment for this column value. If sentiment is disabled,
             will always be :code:`neutral`."""
 
+            def __repr__(self) -> str:
+                return f"{self.__class__.__name__}(label={self.label}, category={self.category}, sentiment={self.sentiment})"
+
         __fields__ = {
             "ref",
             "type",
@@ -776,6 +803,12 @@ class Row(BaseResource[ProjectsController]):
         topics: CaplenaList[Topic]
         """Topics matching the value of this column. If no topics match, an empty array is returned."""
 
+        def __repr__(self) -> str:
+            return (
+                f"RowColumn(ref={self.ref}, type={self.type}, value={self.value[:50]}..., "
+                f"sentiment_overall={self.sentiment_overall}, topics={self.topics.__repr__()})"
+            )
+
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "Row.TextToAnalyzeColumn":
             obj["topics"] = CaplenaList(
@@ -793,6 +826,9 @@ class Row(BaseResource[ProjectsController]):
 
     columns: CaplenaList[Column]
     """Columns for this row."""
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(id={self.id}, columns={self.columns.__repr__()})"
 
     def remove(self) -> None:
         """Removes this row.

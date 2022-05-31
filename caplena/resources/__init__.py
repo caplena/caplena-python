@@ -1,13 +1,13 @@
 from caplena.endpoints.projects_endpoint import (
+    ListedProject,
     ProjectDetail,
-    ProjectList,
     Row,
     RowsAppend,
 )
 
 __all__ = [
     "ProjectDetail",
-    "ProjectList",
+    "ListedProject",
     "RowsAppend",
     "Row",
 ]

@@ -1,6 +1,8 @@
 import copy
 from typing import Callable, Generic, List, Optional, Tuple, TypeVar
 
+from caplena.constants import LIST_PAGINATION_LIMIT
+
 T = TypeVar("T")
 
 
@@ -32,6 +34,7 @@ class CaplenaIterator(Generic[T]):
 
         self._total_results_iterated = 0
         self._current_results_index = 0
+        self._default_pagination_limit = LIST_PAGINATION_LIMIT
 
         self._current_page = current_page
         self._total_results_fetched = total_results_fetched
@@ -47,6 +50,9 @@ class CaplenaIterator(Generic[T]):
         if len(self._results) < count:
             results += ", ..."
         return f"Iterator(count={count}, results=[{results}])"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
     def _retrieve_next_page(self) -> None:
         self._current_page += 1
@@ -84,3 +90,15 @@ class CaplenaIterator(Generic[T]):
 
         self._current_results_index += 1
         return self._results[self._current_results_index - 1]
+
+    def __getitem__(self, key) -> "CaplenaIterator[T]":
+        pagination_limit = (
+            self._limit if self._limit is not None else self._default_pagination_limit
+        )
+        target_page = key // pagination_limit + 1
+        item_index = key - (target_page * pagination_limit)
+        if target_page == self._current_page and len(self._results) > 0:
+            return self._results[item_index]
+        else:
+            results, has_next, count = self._results_fetcher(target_page)
+            return results[item_index]
