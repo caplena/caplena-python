@@ -420,12 +420,8 @@ class ProjectDetail(BaseResource[ProjectsController]):
     upload_status: Literal["pending", "in_progress", "succeeded", "failed"]
     """Current upload status of this project."""
 
-    # fmt: off
-    language: Literal["af", "sq", "eu", "ca", "cs", "da", "nl", "en", "et", "fi",
-                      "fr", "gl", "de", "el", "hu", "is", "it", "lb", "lt", "lv", "mk", "no",
-                      "pl", "pt", "ro", "sr", "sk", "sl", "es", "sv", "tr"]
-    """Base language for this project."""
-    # fmt: on
+    language: str
+    """Base language for this project as an ISO-639-1 Code"""
 
     columns: CaplenaList[Column]
     """Columns for this projects."""
@@ -554,12 +550,8 @@ class ListedProject(BaseResource[ProjectsController]):
     upload_status: Literal["pending", "in_progress", "succeeded", "failed"]
     """Current upload status of this project."""
 
-    # fmt: off
-    language: Literal["af", "sq", "eu", "ca", "cs", "da", "nl", "en", "et", "fi",
-                      "fr", "gl", "de", "el", "hu", "is", "it", "lb", "lt", "lv", "mk", "no",
-                      "pl", "pt", "ro", "sr", "sk", "sl", "es", "sv", "tr"]
-    """Base language for this project."""
-    # fmt: on
+    language: str
+    """Base language for this project as an ISO-639-1 Code"""
 
     created: datetime
     """Timestamp at which the project was created."""
@@ -785,17 +777,8 @@ class Row(BaseResource[ProjectsController]):
         sentiment_overall: Optional[Literal["neutral", "positive", "negative"]]
         """Inferred overall entiment for this column."""
 
-        # fmt: off
-        source_language: Optional[Literal["af", "am", "ar", "az", "be", "bg", "bn", "bs", "ca", "ceb", "co", "cs", "cy", "da",
-                                          "de", "el", "en", "eo", "es", "et", "eu", "fa", "fi", "fr", "fy", "ga", "gd", "gl",
-                                          "gu", "ha", "haw", "hi", "hmn", "hr", "ht", "hu", "hy", "id", "ig", "is", "it", "iw",
-                                          "he", "ja", "jw", "ka", "kk", "km", "kn", "ko", "ku", "ky", "la", "lb", "lo", "lt",
-                                          "lv", "mg", "mi", "mk", "ml", "mn", "mr", "ms", "mt", "my", "ne", "nl", "no", "ny",
-                                          "or", "pa", "pl", "ps", "pt", "ro", "rw", "ru", "sd", "si", "sk", "sl", "sm", "sn",
-                                          "so", "sq", "sr", "st", "su", "sv", "sw", "ta", "te", "tg", "th", "tl", "tr", "tk",
-                                          "tt", "ug", "uk", "ur", "uz", "vi", "xh", "yi", "yo", "zh", "zh-CN", "zh-TW", "zu"]]
-        """Source language of this value."""
-        # fmt: on
+        source_language: Optional[str]
+        """Source language of this value as an ISO-639-1 Code (https://cloud.google.com/translate/docs/languages)."""
 
         translated_value: Optional[str]
         """Translated value if translation is enabled for this column."""
