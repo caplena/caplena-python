@@ -315,7 +315,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
             """Description for this topic."""
 
             sentiment_enabled: bool
-            """Sentiment for this topic. Currently disabled."""
+            """If enabled, Caplena will assign the topic with a corresponding sentiment."""
 
             sentiment_neutral: Sentiment
             """Neutral topic sentiment."""
@@ -746,9 +746,8 @@ class Row(BaseResource[ProjectsController]):
             """Label for the inferred topic sentiment. If sentiment is disabled, the neutral
             topic sentiment :code:`label` will be used."""
 
-            sentiment: Literal["neutral", "positive", "negative"]
-            """Inferred sentiment for this column value. If sentiment is disabled,
-            will always be :code:`neutral`."""
+            sentiment: Literal["neutral", "positive", "negative", "any"]
+            """Inferred sentiment for this column value."""
 
             def __repr__(self) -> str:
                 return f"{self.__class__.__name__}(label={self.label}, category={self.category}, sentiment={self.sentiment})"
@@ -775,7 +774,7 @@ class Row(BaseResource[ProjectsController]):
         """Indicates whether the row value for this column has been reviewed."""
 
         sentiment_overall: Optional[Literal["neutral", "positive", "negative"]]
-        """Inferred overall entiment for this column."""
+        """Inferred overall sentiment for this column."""
 
         source_language: Optional[str]
         """Source language of this value as an ISO-639-1 Code (https://cloud.google.com/translate/docs/languages)."""

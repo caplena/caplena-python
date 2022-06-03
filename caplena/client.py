@@ -15,7 +15,7 @@ class Client:
     :param api_key: The API key to use for making requests.
     :param api_base_uri: The API Base URI to use, defaults to :code:`https://api.caplena.com/v2`.
     :type api_base_uri: ApiBaseUri
-    :param api_version: The API Version to use, defaults to :code:`2022-01-01`.
+    :param api_version: The API Version to use, defaults to :code:`2022-06-13`.
     :type api_version: ApiVersion
     :param timeout: The maximum number of seconds before the request times out, defaults to :code:`120`.
     :param max_retries: The maximum number of times the request is retried before giving up, defaults to :code:`0`.
@@ -45,7 +45,7 @@ class Client:
         api_key: str,
         *,
         api_base_uri: ApiBaseUri = ApiBaseUri.PRODUCTION,
-        api_version: ApiVersion = ApiVersion.DEFAULT,
+        api_version: ApiVersion = ApiVersion.VER_2022_06_13,
         timeout: int = HttpClient.DEFAULT_TIMEOUT,
         max_retries: int = HttpRetry.DEFAULT_MAX_RETRIES,
         backoff_factor: float = HttpRetry.DEFAULT_BACKOFF_FACTOR,
