@@ -61,7 +61,7 @@ class Configuration:
         api_key: str,
         http_client: Union[Type[HttpClient], HttpClient],
         api_base_uri: ApiBaseUri = ApiBaseUri.PRODUCTION,
-        api_version: ApiVersion = ApiVersion.VER_2022_01_01,
+        api_version: ApiVersion = ApiVersion.VER_2022_06_20,
         timeout: int = HttpClient.DEFAULT_TIMEOUT,
         max_retries: int = HttpRetry.DEFAULT_MAX_RETRIES,
         backoff_factor: float = HttpRetry.DEFAULT_BACKOFF_FACTOR,
