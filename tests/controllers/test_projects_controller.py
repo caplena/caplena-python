@@ -25,7 +25,6 @@ def project_create_payload() -> Dict[str, Any]:
                 "ref": "our_strengths",
                 "name": "Do you like us?",
                 "type": "text_to_analyze",
-                "description": "Please explain what our strengths are.",
                 "topics": [
                     {
                         "label": "price",
@@ -131,7 +130,7 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual("our_strengths", our_strengths.ref)
         self.assertEqual("Do you like us?", our_strengths.name)
         self.assertEqual("text_to_analyze", our_strengths.type)
-        self.assertEqual("Please explain what our strengths are.", our_strengths.description)
+        self.assertEqual("", our_strengths.description)
         self.assertDictEqual(
             {
                 "reviewed_count": 0,

@@ -29,6 +29,7 @@ class ProjectsController(BaseController):
         columns: List[Dict[str, Any]],
         tags: Optional[List[str]] = NOT_SET,
         translation_engine: Optional[str] = NOT_SET,
+        anonymize_pii: Optional[Dict] = NOT_SET,
     ) -> "ProjectDetail":
         """Creates a new project.
 
@@ -42,6 +43,7 @@ class ProjectsController(BaseController):
         :param tags: Tags assigned to this project. If omitted, no tags are assigned.
         :param translation_engine: Translation engine used to translate rows into the base language of this project.
             If omitted, no translation will be performed.
+        :param anonymize_pii: settings to use for anonymization, visit the developer docs for more information.
         :raises caplena.api.ApiException: An API exception.
         """
         json = self.api.build_payload(
@@ -50,6 +52,7 @@ class ProjectsController(BaseController):
             columns=columns,
             tags=tags,
             translation_engine=translation_engine,
+            anonymize_pii=anonymize_pii,
         )
 
         response = self.post(path="/projects", json=json)
@@ -369,7 +372,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         type: Literal["text_to_analyze"]
         """Type of this column."""
 
-        description: str
+        description: Optional[str] = ""
         """Column description displayed for this column."""
 
         topics: CaplenaList[Topic]
@@ -437,6 +440,8 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
     translation_engine: Optional[str]
     """Translation engine used for translating :code:`text_to_analyze` columns."""
+
+    anonymize_pii: Optional[Dict]
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id={self.id}, name={self.name}, columns={self.columns.__repr__()})"
