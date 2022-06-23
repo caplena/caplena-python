@@ -29,7 +29,7 @@ Resources
 .. autoclass:: caplena.resources.ProjectDetail
     :members:
 
-.. autoclass:: caplena.resources.ProjectList
+.. autoclass:: caplena.resources.ListedProject
     :members:
 
 .. autoclass:: caplena.resources.RowsAppend

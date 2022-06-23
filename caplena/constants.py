@@ -16,3 +16,6 @@ class _NOT_SET:
 # `undefined` in JSON. this is especially relevant for update requests
 # where not all properties need to be present.
 NOT_SET: Any = _NOT_SET()
+
+# Pagination limits
+LIST_PAGINATION_LIMIT = 30

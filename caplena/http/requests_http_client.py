@@ -38,6 +38,8 @@ class RequestsHttpClient(HttpClient):
             headers=headers,
             timeout=timeout,
         )
+        if response.status_code > 500:
+            response.raise_for_status()
 
         # note: we only support utf-8 encodings
         if response.encoding != "utf-8":

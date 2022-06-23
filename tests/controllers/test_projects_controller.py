@@ -25,17 +25,16 @@ def project_create_payload() -> Dict[str, Any]:
                 "ref": "our_strengths",
                 "name": "Do you like us?",
                 "type": "text_to_analyze",
-                "description": "Please explain what our strengths are.",
                 "topics": [
                     {
-                        "label": "Some Code Label",
-                        "sentiment_enabled": False,
-                        "category": "SOME_CATEGORY",
+                        "label": "price",
+                        "sentiment_enabled": True,
+                        "category": "SERVICE",
                     },
                     {
-                        "label": "Another Code Label",
+                        "label": "network quality",
                         "sentiment_enabled": False,
-                        "category": "ANOTHER_CATEGORY",
+                        "category": "SERVICE",
                     },
                 ],
             },
@@ -131,7 +130,7 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual("our_strengths", our_strengths.ref)
         self.assertEqual("Do you like us?", our_strengths.name)
         self.assertEqual("text_to_analyze", our_strengths.type)
-        self.assertEqual("Please explain what our strengths are.", our_strengths.description)
+        self.assertEqual("", our_strengths.description)
         self.assertDictEqual(
             {
                 "reviewed_count": 0,
@@ -143,22 +142,22 @@ class ProjectsControllerTests(unittest.TestCase):
 
         topic1, topic2 = our_strengths.topics[0], our_strengths.topics[1]
         self.assertRegex(topic1.id, r"^cd_")
-        self.assertEqual("Some Code Label", topic1.label)
-        self.assertEqual("SOME_CATEGORY", topic1.category)
+        self.assertEqual("price", topic1.label)
+        self.assertEqual("SERVICE", topic1.category)
         self.assertEqual("", topic1.color)
         self.assertEqual("", topic1.description)
-        self.assertEqual(False, topic1.sentiment_enabled)
+        self.assertEqual(True, topic1.sentiment_enabled)
         self.assertDictEqual({"code": 0, "label": ""}, topic1.sentiment_neutral.dict())
-        self.assertDictEqual({"code": -1, "label": ""}, topic1.sentiment_negative.dict())
-        self.assertDictEqual({"code": -1, "label": ""}, topic1.sentiment_positive.dict())
+        self.assertDictEqual({"code": 1, "label": ""}, topic1.sentiment_positive.dict())
+        self.assertDictEqual({"code": 2, "label": ""}, topic1.sentiment_negative.dict())
 
         self.assertRegex(topic2.id, r"^cd_")
-        self.assertEqual("Another Code Label", topic2.label)
-        self.assertEqual("ANOTHER_CATEGORY", topic2.category)
+        self.assertEqual("network quality", topic2.label)
+        self.assertEqual("SERVICE", topic2.category)
         self.assertEqual("", topic2.color)
         self.assertEqual("", topic2.description)
         self.assertEqual(False, topic2.sentiment_enabled)
-        self.assertDictEqual({"code": 1, "label": ""}, topic2.sentiment_neutral.dict())
+        self.assertDictEqual({"code": 3, "label": ""}, topic2.sentiment_neutral.dict())
         self.assertDictEqual({"code": -1, "label": ""}, topic2.sentiment_negative.dict())
         self.assertDictEqual({"code": -1, "label": ""}, topic2.sentiment_positive.dict())
 
@@ -266,7 +265,7 @@ class ProjectsControllerTests(unittest.TestCase):
         project = self.create_project()
         columns: List[Dict[str, Any]] = [
             {"ref": "customer_age", "value": None},
-            {"ref": "our_strengths", "value": "Some other text."},
+            {"ref": "our_strengths", "value": "Good price."},
             {"ref": "boolean_col", "value": False},
             {"ref": "text_col", "value": None},
             {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
@@ -288,18 +287,18 @@ class ProjectsControllerTests(unittest.TestCase):
 
         self.assertEqual("our_strengths", our_strengths.ref)
         self.assertEqual("text_to_analyze", our_strengths.type)
-        self.assertEqual("Some other text.", our_strengths.value)
+        self.assertEqual("Good price.", our_strengths.value)
         self.assertEqual(False, our_strengths.was_reviewed)
         self.assertEqual(None, our_strengths.source_language)
         self.assertEqual(None, our_strengths.translated_value)
         self.assertEqual(1, len(our_strengths.topics))
         topic = our_strengths.topics[0]
         self.assertRegex(topic.id, r"^cd_")
-        self.assertEqual(topic.label, "Another Code Label")
-        self.assertEqual(topic.category, "ANOTHER_CATEGORY")
+        self.assertEqual(topic.label, "price")
+        self.assertEqual(topic.category, "SERVICE")
         self.assertEqual(topic.code, 1)
         self.assertEqual(topic.sentiment_label, "")
-        self.assertEqual(topic.sentiment, "neutral")
+        self.assertEqual(topic.sentiment, "positive")
 
         self.assertEqual("customer_age", customer_age.ref)
         self.assertEqual("numerical", customer_age.type)

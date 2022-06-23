@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 from typing_extensions import Literal
 
 from caplena.api import ApiOrdering
-from caplena.constants import NOT_SET
+from caplena.constants import LIST_PAGINATION_LIMIT, NOT_SET
 from caplena.endpoints.base_endpoint import BaseController, BaseObject, BaseResource
 from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
 from caplena.helpers import Helpers
@@ -29,6 +29,7 @@ class ProjectsController(BaseController):
         columns: List[Dict[str, Any]],
         tags: Optional[List[str]] = NOT_SET,
         translation_engine: Optional[str] = NOT_SET,
+        anonymize_pii: Optional[Dict] = NOT_SET,
     ) -> "ProjectDetail":
         """Creates a new project.
 
@@ -42,6 +43,7 @@ class ProjectsController(BaseController):
         :param tags: Tags assigned to this project. If omitted, no tags are assigned.
         :param translation_engine: Translation engine used to translate rows into the base language of this project.
             If omitted, no translation will be performed.
+        :param anonymize_pii: settings to use for anonymization, visit the developer docs for more information.
         :raises caplena.api.ApiException: An API exception.
         """
         json = self.api.build_payload(
@@ -50,6 +52,7 @@ class ProjectsController(BaseController):
             columns=columns,
             tags=tags,
             translation_engine=translation_engine,
+            anonymize_pii=anonymize_pii,
         )
 
         response = self.post(path="/projects", json=json)
@@ -78,7 +81,7 @@ class ProjectsController(BaseController):
         order_by: ApiOrdering = ApiOrdering.desc("last_modified"),
         limit: Optional[int] = None,
         filter: Optional[ProjectsFilter] = None,
-    ) -> "CaplenaIterator[ProjectList]":
+    ) -> "CaplenaIterator[ListedProject]":
         """Returns an iterator of all projects you have previously created. By default, the projects are returned
         in sorted order, with the most recently modified project appearing first.
 
@@ -94,13 +97,13 @@ class ProjectsController(BaseController):
                 path="/projects",
                 query_params={
                     "page": str(page),
-                    "limit": str(10),
+                    "limit": str(LIST_PAGINATION_LIMIT),
                 },
                 filter=filter,
                 order_by=order_by,
             )
 
-        return self.build_iterator(fetcher=fetcher, limit=limit, resource=ProjectList)
+        return self.build_iterator(fetcher=fetcher, limit=limit, resource=ListedProject)
 
     def update(
         self,
@@ -192,7 +195,7 @@ class ProjectsController(BaseController):
                 path_params={"id": id},
                 query_params={
                     "page": str(page),
-                    "limit": str(30),
+                    "limit": str(LIST_PAGINATION_LIMIT),
                 },
                 filter=filter,
             )
@@ -274,6 +277,9 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
             return modified
 
+        def __repr__(self) -> str:
+            return f"ProjectColumn(ref={self.ref}, type={self.type}, name={self.name})"
+
     class TextToAnalyze(Column):
         class Topic(BaseResource[ProjectsController]):
             class Sentiment(BaseObject[ProjectsController]):
@@ -284,6 +290,9 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
                 label: str
                 """Label for this topic sentiment."""
+
+                def __repr__(self) -> str:
+                    return f"TopicSentiment(code={self.code}, label={self.label})"
 
             __fields__ = {
                 "label",
@@ -309,7 +318,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
             """Description for this topic."""
 
             sentiment_enabled: bool
-            """Sentiment for this topic. Currently disabled."""
+            """If enabled, Caplena will assign the topic with a corresponding sentiment."""
 
             sentiment_neutral: Sentiment
             """Neutral topic sentiment."""
@@ -319,6 +328,12 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
             sentiment_positive: Sentiment
             """Positive topic sentiment."""
+
+            def __repr__(self) -> str:
+                return (
+                    f"{self.__class__.__name__}(label={self.label}, category={self.category}, "
+                    f"sentiment_enabled={self.sentiment_enabled})"
+                )
 
             @classmethod
             def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail.TextToAnalyze.Topic":
@@ -357,7 +372,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         type: Literal["text_to_analyze"]
         """Type of this column."""
 
-        description: str
+        description: Optional[str] = ""
         """Column description displayed for this column."""
 
         topics: CaplenaList[Topic]
@@ -365,6 +380,9 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
         metadata: Metadata
         """Metadata associated with this column."""
+
+        def __repr__(self) -> str:
+            return f"ProjectColumn(ref={self.ref}, type={self.type}, name={self.name}, topics={self.topics.__repr__()})"
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail.TextToAnalyze":
@@ -405,12 +423,8 @@ class ProjectDetail(BaseResource[ProjectsController]):
     upload_status: Literal["pending", "in_progress", "succeeded", "failed"]
     """Current upload status of this project."""
 
-    # fmt: off
-    language: Literal["af", "sq", "eu", "ca", "cs", "da", "nl", "en", "et", "fi",
-                      "fr", "gl", "de", "el", "hu", "is", "it", "lb", "lt", "lv", "mk", "no",
-                      "pl", "pt", "ro", "sr", "sk", "sl", "es", "sv", "tr"]
-    """Base language for this project."""
-    # fmt: on
+    language: str
+    """Base language for this project as an ISO-639-1 Code"""
 
     columns: CaplenaList[Column]
     """Columns for this projects."""
@@ -426,6 +440,11 @@ class ProjectDetail(BaseResource[ProjectsController]):
 
     translation_engine: Optional[str]
     """Translation engine used for translating :code:`text_to_analyze` columns."""
+
+    anonymize_pii: Optional[Dict]
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(id={self.id}, name={self.name}, columns={self.columns.__repr__()})"
 
     def remove(self) -> None:
         """Removes this project.
@@ -508,7 +527,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
         return super().parse_obj(obj)
 
 
-class ProjectList(BaseResource[ProjectsController]):
+class ListedProject(BaseResource[ProjectsController]):
     """The project list resource."""
 
     __fields__ = {
@@ -536,12 +555,8 @@ class ProjectList(BaseResource[ProjectsController]):
     upload_status: Literal["pending", "in_progress", "succeeded", "failed"]
     """Current upload status of this project."""
 
-    # fmt: off
-    language: Literal["af", "sq", "eu", "ca", "cs", "da", "nl", "en", "et", "fi",
-                      "fr", "gl", "de", "el", "hu", "is", "it", "lb", "lt", "lv", "mk", "no",
-                      "pl", "pt", "ro", "sr", "sk", "sl", "es", "sv", "tr"]
-    """Base language for this project."""
-    # fmt: on
+    language: str
+    """Base language for this project as an ISO-639-1 Code"""
 
     created: datetime
     """Timestamp at which the project was created."""
@@ -554,6 +569,9 @@ class ProjectList(BaseResource[ProjectsController]):
 
     translation_engine: Optional[str]
     """Translation engine used for translating :code:`text_to_analyze` columns."""
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(id={self.id}, name={self.name})"
 
     def remove(self) -> None:
         """Removes this project.
@@ -621,7 +639,7 @@ class ProjectList(BaseResource[ProjectsController]):
             self._refresh_from(attrs=project._attrs)
 
     @classmethod
-    def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectList":
+    def parse_obj(cls, obj: Dict[str, Any]) -> "ListedProject":
         obj["created"] = Helpers.from_rfc3339_datetime(obj["created"])
         obj["last_modified"] = Helpers.from_rfc3339_datetime(obj["last_modified"])
 
@@ -658,6 +676,9 @@ class Row(BaseResource[ProjectsController]):
 
         value: Union[int, float, bool, None, str, datetime]
         """Value assigned to this column."""
+
+        def __repr__(self) -> str:
+            return f"RowColumn(ref={self.ref}, type={self.type}, value={self.value})"
 
         def modified_dict(self) -> Any:
             modified: Any = super().modified_dict()
@@ -730,9 +751,11 @@ class Row(BaseResource[ProjectsController]):
             """Label for the inferred topic sentiment. If sentiment is disabled, the neutral
             topic sentiment :code:`label` will be used."""
 
-            sentiment: Literal["neutral", "positive", "negative"]
-            """Inferred sentiment for this column value. If sentiment is disabled,
-            will always be :code:`neutral`."""
+            sentiment: Literal["neutral", "positive", "negative", "any"]
+            """Inferred sentiment for this column value."""
+
+            def __repr__(self) -> str:
+                return f"{self.__class__.__name__}(label={self.label}, category={self.category}, sentiment={self.sentiment})"
 
         __fields__ = {
             "ref",
@@ -756,25 +779,22 @@ class Row(BaseResource[ProjectsController]):
         """Indicates whether the row value for this column has been reviewed."""
 
         sentiment_overall: Optional[Literal["neutral", "positive", "negative"]]
-        """Inferred overall entiment for this column."""
+        """Inferred overall sentiment for this column."""
 
-        # fmt: off
-        source_language: Optional[Literal["af", "am", "ar", "az", "be", "bg", "bn", "bs", "ca", "ceb", "co", "cs", "cy", "da",
-                                          "de", "el", "en", "eo", "es", "et", "eu", "fa", "fi", "fr", "fy", "ga", "gd", "gl",
-                                          "gu", "ha", "haw", "hi", "hmn", "hr", "ht", "hu", "hy", "id", "ig", "is", "it", "iw",
-                                          "he", "ja", "jw", "ka", "kk", "km", "kn", "ko", "ku", "ky", "la", "lb", "lo", "lt",
-                                          "lv", "mg", "mi", "mk", "ml", "mn", "mr", "ms", "mt", "my", "ne", "nl", "no", "ny",
-                                          "or", "pa", "pl", "ps", "pt", "ro", "rw", "ru", "sd", "si", "sk", "sl", "sm", "sn",
-                                          "so", "sq", "sr", "st", "su", "sv", "sw", "ta", "te", "tg", "th", "tl", "tr", "tk",
-                                          "tt", "ug", "uk", "ur", "uz", "vi", "xh", "yi", "yo", "zh", "zh-CN", "zh-TW", "zu"]]
-        """Source language of this value."""
-        # fmt: on
+        source_language: Optional[str]
+        """Source language of this value as an ISO-639-1 Code (https://cloud.google.com/translate/docs/languages)."""
 
         translated_value: Optional[str]
         """Translated value if translation is enabled for this column."""
 
         topics: CaplenaList[Topic]
         """Topics matching the value of this column. If no topics match, an empty array is returned."""
+
+        def __repr__(self) -> str:
+            return (
+                f"RowColumn(ref={self.ref}, type={self.type}, value={self.value[:50]}..., "
+                f"sentiment_overall={self.sentiment_overall}, topics={self.topics.__repr__()})"
+            )
 
         @classmethod
         def parse_obj(cls, obj: Dict[str, Any]) -> "Row.TextToAnalyzeColumn":
@@ -793,6 +813,9 @@ class Row(BaseResource[ProjectsController]):
 
     columns: CaplenaList[Column]
     """Columns for this row."""
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(id={self.id}, columns={self.columns.__repr__()})"
 
     def remove(self) -> None:
         """Removes this row.

@@ -43,6 +43,13 @@ class CaplenaList(MutableSequence[T]):
     def __str__(self) -> str:
         return str(self._values)
 
+    def __repr__(self) -> str:
+        if len(self._values) > 5:
+            reprs = [value.__repr__() for value in self._values[:5]]
+            return f"[{', '.join(reprs)}, ...]"
+        else:
+            return self._values.__repr__()
+
     def __len__(self) -> int:
         return len(self._values)
 

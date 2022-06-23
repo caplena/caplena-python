@@ -62,12 +62,12 @@ filter accordingly.
 
   language_filter = P.language('en') | P.language('de')
 
-We're now finally ready to retrieve the first 10 projects matching the :code:`language_filter` from your account.
+We're now finally ready to retrieve 10 projects matching the :code:`language_filter` from your account.
 We can retrieve and iterate over those results as follows:
 
 .. code-block:: python
 
-  projects = client.projects.list(filter=language_filter, limit=10)
+  projects = client.projects.list(filter=language_filter)
 
   print('No. of German or English projects:', projects.count)
   for project in projects:
