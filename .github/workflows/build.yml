@@ -36,7 +36,7 @@ jobs:
           destination-github-username: caplena
           destination-repository-name: docs-external-site
           source-directory: docs/build/html/
-          target-directory: public/docs/sdk/python/
+          target-directory: public/sdk/python/
           user-email: admin@caplena.com
           target-branch: main
           commit-message: Update SDK documentation ORIGIN_COMMIT
