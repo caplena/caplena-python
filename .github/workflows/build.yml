@@ -19,7 +19,7 @@ jobs:
     name: Build documentation
     runs-on: ubuntu-latest
     needs: lint
-    if: ${{ contains(fromJSON('["refs/heads/main", "refs/heads/develop", "refs/heads/app-695-cicd-pipeline-for-api-specs-and-python"]'), github.ref) }}
+    if: ${{ contains(fromJSON('["refs/heads/main", "refs/heads/develop"]'), github.ref) }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v4
