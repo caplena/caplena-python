@@ -75,6 +75,8 @@ Build the Sphinx SDK docs:
 make build-docs
 ```
 
+The Sphinx generated documentation is automatically generated and uploaded to our [developer documentation portal](https://caplena.com/docs/sdk/python/), using Github Actions.
+
 Build the Python package:
 
 ```sh
