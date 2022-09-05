@@ -91,7 +91,7 @@ class CaplenaIterator(Generic[T]):
         self._current_results_index += 1
         return self._results[self._current_results_index - 1]
 
-    def __getitem__(self, key) -> "CaplenaIterator[T]":
+    def __getitem__(self, key: int) -> T:
         pagination_limit = (
             self._limit if self._limit is not None else self._default_pagination_limit
         )
