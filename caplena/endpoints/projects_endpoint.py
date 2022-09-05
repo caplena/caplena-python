@@ -29,7 +29,7 @@ class ProjectsController(BaseController):
         columns: List[Dict[str, Any]],
         tags: Optional[List[str]] = NOT_SET,
         translation_engine: Optional[str] = NOT_SET,
-        anonymize_pii: Optional[Dict] = NOT_SET,
+        anonymize_pii: Optional[Dict[str, List[str]]] = NOT_SET,
     ) -> "ProjectDetail":
         """Creates a new project.
 
@@ -441,7 +441,7 @@ class ProjectDetail(BaseResource[ProjectsController]):
     translation_engine: Optional[str]
     """Translation engine used for translating :code:`text_to_analyze` columns."""
 
-    anonymize_pii: Optional[Dict]
+    anonymize_pii: Optional[Dict[str, List[str]]]
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id={self.id}, name={self.name}, columns={self.columns.__repr__()})"

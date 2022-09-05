@@ -7,13 +7,12 @@ help:
 install: ## Installs all dependencies
 	flit install --deps develop --symlink
 	pre-commit
-	mypy --install-types
 
 lint: ## Run code linters
 	black .
 	isort .
 	flake8 .
-	mypy .
+	mypy caplena tests --install-types
 
 fmt format: ## Run code formatters
 	black caplena tests

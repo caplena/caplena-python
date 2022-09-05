@@ -5,3 +5,5 @@ exclude =
     .git,
     __pycache__
     .history
+    .venv
+    venv
