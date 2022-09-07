@@ -42,7 +42,7 @@ class RequestsHttpClient(HttpClient):
             response.raise_for_status()
 
         # note: we only support utf-8 encodings
-        if response.encoding != "utf-8":
+        if response.encoding is None or response.encoding.lower() != "utf-8":
             raise ValueError(
                 f"Received a response with an unsupported encoding scheme (encoding='{response.encoding}')."
             )
