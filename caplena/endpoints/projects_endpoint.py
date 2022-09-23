@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
@@ -149,6 +150,45 @@ class ProjectsController(BaseController):
             json=rows,
             allowed_codes={202},
         )
+
+        return self.build_response(response, resource=RowsAppend)
+
+    def append_rows_sync(
+        self,
+        *,
+        id: str,
+        rows: List[Dict[str, Any]],
+    ) -> "RowsAppend":
+        """Appends multiple rows to a previously created project. It is possible to append a
+        maximum of 20 rows in a single request.
+        Will wait that the project status become succeeded and throw an error otherwise.
+
+        :param id: The project identifier.
+        :param rows: The rows to append to the specified project.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        response = self.post(
+            path="/projects/{id}/rows/bulk",
+            path_params={"id": id},
+            json=rows,
+            allowed_codes={202},
+        )
+        json = self._retrieve_json_or_raise(response)
+        estimated_minutes = json["estimated_minutes"]
+        # wait at least 5 seconds
+        seconds = max(estimated_minutes * 60, 5)
+        time.sleep(seconds)
+
+        while True:
+            project = self.retrieve(id=id)
+            if project.upload_status == "succeeded":
+                break
+            elif project.upload_status == "in_progress":
+                time.sleep(3)
+            elif project.upload_status == "failed":
+                raise ValueError("Project upload failed")
+            elif project.upload_status == "pending":
+                raise ValueError(f"Project is still pending after waiting for {seconds}s")
 
         return self.build_response(response, resource=RowsAppend)
 
