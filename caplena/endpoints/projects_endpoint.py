@@ -158,8 +158,10 @@ class ProjectsController(BaseController):
         *,
         id: str,
         rows: List[Dict[str, Any]],
+        parallelism: int,
     ) -> "RowsAppend":
-        """Appends multiple rows to a previously created project. It is possible to append a
+        """
+        Appends multiple rows to a previously created project. It is possible to append a
         maximum of 20 rows in a single request.
         Will wait that the project status become succeeded and throw an error otherwise.
 
@@ -167,30 +169,62 @@ class ProjectsController(BaseController):
         :param rows: The rows to append to the specified project.
         :raises caplena.api.ApiException: An API exception.
         """
+        nb_per_chunk = 100
+        chunks = [rows[x:(x + nb_per_chunk)] for x in range(0, len(rows), nb_per_chunk)]
+        chunks = list(reversed(chunks))
+
+        running_jobs: List[Dict[str, Any]] = []
+
+        def fill_up_jobs():
+            while len(running_jobs) < parallelism and len(chunks) > 0:
+                chunk = chunks.pop()
+                running_jobs.append({
+                    'job_id': self._push_chunks(id, chunk)['job_id'],
+                    'chunks': chunk
+                })
+
+        fill_up_jobs()
+
+        def check_jobs():
+            for job in running_jobs:
+                if self._are_inference_completed(job['job_id'], rows):
+                    break
+
+        give_up_counter = 0
+        while True:
+            # Check question inference status
+            if self._are_inference_completed(job_id, rows):
+                break
+
+            # not ready yet? we wait for a little bit longer
+            time.sleep(1)
+            give_up_counter += 1
+            # give it 1 minute
+            if give_up_counter > 60:
+                raise ValueError("Didn't get the inference on time")
+
+        return self.build_response(response, resource=RowsAppend)
+
+    def _push_chunks(self, id: str, rows: List[Dict[str, Any]]):
         response = self.post(
             path="/projects/{id}/rows/bulk",
             path_params={"id": id},
             json=rows,
             allowed_codes={202},
         )
+        return self._retrieve_json_or_raise(response)
+
+    def _are_inference_completed(self, job_id: str, rows: List[Dict[str, Any]]):
+        # Check question inference status
+        response = self.get(
+            path=f"/projects/jobs/{job_id}/questions-inference/status",
+            allowed_codes={202},
+        )
         json = self._retrieve_json_or_raise(response)
-        estimated_minutes = json["estimated_minutes"]
-        # wait at least 5 seconds
-        seconds = max(estimated_minutes * 60, 5)
-        time.sleep(seconds)
+        nb_completed = len(json["questions_inference_completed"])
 
-        while True:
-            project = self.retrieve(id=id)
-            if project.upload_status == "succeeded":
-                break
-            elif project.upload_status == "in_progress":
-                time.sleep(3)
-            elif project.upload_status == "failed":
-                raise ValueError("Project upload failed")
-            elif project.upload_status == "pending":
-                raise ValueError(f"Project is still pending after waiting for {seconds}s")
-
-        return self.build_response(response, resource=RowsAppend)
+        if nb_completed >= len(rows):
+            return True
 
     def append_row(
         self,
