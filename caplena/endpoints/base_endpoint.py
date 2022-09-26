@@ -15,11 +15,14 @@ from typing import (
     Union,
 )
 
+import httpx
+
 from caplena.api import ApiFilter, ApiOrdering
 from caplena.api.api_requestor import ApiRequestor
 from caplena.configuration import Configuration
 from caplena.constants import NOT_SET
 from caplena.helpers import Helpers
+from caplena.http.http_client import HttpMethod
 from caplena.http.http_response import HttpResponse
 from caplena.iterator import CaplenaIterator
 from caplena.list import CaplenaList
@@ -95,6 +98,56 @@ class BaseController:
 
         if response.status_code not in allowed_codes:
             raise self._config.api_requestor.build_exc(response)
+
+        return response
+
+    async def post_async(
+        self,
+        path: str,
+        *,
+        allowed_codes: Iterable[int] = DEFAULT_ALLOWED_POST_CODES,
+        path_params: Optional[Dict[str, str]] = None,
+        query_params: Optional[Dict[str, str]] = None,
+        json: Optional[Union[Dict[str, Any], List[Any]]] = None,
+    ) -> httpx.Response:
+        response = await self._config.api_requestor.request_raw_async(
+            base_uri=self._config.api_base_uri,
+            path=path,
+            method=HttpMethod.POST,
+            api_key=self._config.api_key,
+            api_version=self._config.api_version,
+            path_params=path_params,
+            query_params=query_params,
+            json=json,
+        )
+
+        if response.status_code not in allowed_codes:
+            raise self._config.api_requestor.build_exc_httpx(response)
+
+        return response
+
+    async def get_async(
+        self,
+        path: str,
+        *,
+        allowed_codes: Iterable[int] = DEFAULT_ALLOWED_CODES,
+        path_params: Optional[Dict[str, str]] = None,
+        query_params: Optional[Dict[str, str]] = None,
+        filter: Optional[ApiFilter] = None,
+        order_by: Optional[ApiOrdering] = None,
+    ) -> httpx.Response:
+        response = await self._config.api_requestor.request_raw_async(
+            base_uri=self._config.api_base_uri,
+            path=path,
+            method=HttpMethod.GET,
+            api_key=self._config.api_key,
+            api_version=self._config.api_version,
+            path_params=path_params,
+            query_params=query_params,
+        )
+
+        if response.status_code not in allowed_codes:
+            raise self._config.api_requestor.build_exc_httpx(response)
 
         return response
 

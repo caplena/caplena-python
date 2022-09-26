@@ -1,5 +1,7 @@
 from typing import Any, Dict, List, Optional, Union
 
+import httpx
+
 from caplena.api.api_base_uri import ApiBaseUri
 from caplena.api.api_exception import ApiException
 from caplena.api.api_filter import ApiFilter
@@ -98,6 +100,23 @@ class ApiRequestor:
         else:
             return ApiException(type="internal_error", code="body.invalid_format")
 
+    def build_exc_httpx(self, response: httpx.Response) -> ApiException:
+        exc_body = response.json()
+        if exc_body:
+            self.logger.info(
+                "Received error from server", type=exc_body["type"], code=exc_body["code"]
+            )
+            return ApiException(
+                type=exc_body["type"],
+                code=exc_body["code"],
+                message=exc_body["message"],
+                details=exc_body.get("details"),
+                help=exc_body.get("help"),
+                context=exc_body.get("context"),
+            )
+        else:
+            return ApiException(type="internal_error", code="body.invalid_format")
+
     def request_raw(
         self,
         base_uri: Union[str, ApiBaseUri],
@@ -133,6 +152,43 @@ class ApiRequestor:
             timeout=timeout,
             retry=retry,
         )
+
+    async def request_raw_async(
+        self,
+        base_uri: Union[str, ApiBaseUri],
+        path: str,
+        *,
+        method: HttpMethod = HttpMethod.GET,
+        api_version: ApiVersion = ApiVersion.DEFAULT,
+        api_key: Optional[str] = None,
+        path_params: Optional[Dict[str, str]] = None,
+        query_params: Optional[Dict[str, str]] = None,
+        json: Optional[Union[Dict[str, Any], List[Any]]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[int] = None,
+        # retry: Optional[HttpRetry] = None,
+    ) -> httpx.Response:
+        absolute_uri = self.build_uri(
+            base_uri=base_uri,
+            path=path,
+            path_params=path_params,
+            query_params=query_params,
+        )
+        headers = self.build_request_headers(
+            headers=headers,
+            api_version=api_version,
+            api_key=api_key,
+        )
+        async with httpx.AsyncClient() as client:
+            response = await client.request(
+                method=method.method,
+                url=absolute_uri,
+                headers=headers,
+                json=json,
+                timeout=timeout,
+                # retry=retry,
+            )
+            return response
 
     def get(
         self,
