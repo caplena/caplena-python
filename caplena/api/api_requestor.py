@@ -1,3 +1,4 @@
+from json import dumps
 from typing import Any, Dict, List, Optional, Union
 
 import httpx
@@ -10,6 +11,7 @@ from caplena.api.api_version import ApiVersion
 from caplena.helpers import Helpers
 from caplena.http.http_client import HttpClient, HttpMethod, HttpRetry
 from caplena.http.http_response import HttpResponse
+from caplena.http.json_encoder import JsonDateEncoder
 from caplena.logging.logger import Logger
 
 
@@ -168,6 +170,14 @@ class ApiRequestor:
         timeout: Optional[int] = None,
         # retry: Optional[HttpRetry] = None,
     ) -> httpx.Response:
+
+        data = None
+        headers = headers if headers is not None else {}
+        if json is not None:
+            headers["content-type"] = "application/json"
+            data = dumps(json, cls=JsonDateEncoder)
+            self.logger.debug("Sending request to Caplena API", data=data)
+
         absolute_uri = self.build_uri(
             base_uri=base_uri,
             path=path,
@@ -180,11 +190,12 @@ class ApiRequestor:
             api_key=api_key,
         )
         async with httpx.AsyncClient() as client:
+            self.logger.info("Sending request to Caplena API", method=str(method), uri=absolute_uri)
             response = await client.request(
                 method=method.method,
                 url=absolute_uri,
                 headers=headers,
-                json=json,
+                data=data,
                 timeout=timeout,
                 # retry=retry,
             )

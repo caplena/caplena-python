@@ -154,6 +154,26 @@ class ProjectsController(BaseController):
 
         return self.build_response(response, resource=RowsAppend)
 
+    def append_rows_sync(
+        self,
+        *,
+        id: str,
+        rows: List[Dict[str, Any]],
+        parallelism: int = 3,
+    ) -> None:
+        print("start")
+        for row in rows:
+            for column in row["columns"]:
+                for key, value in column.items():
+                    if isinstance(value, datetime):
+                        column[key] = value
+
+        loop = asyncio.get_event_loop()
+        future = loop.run_until_complete(
+            self.append_rows_async(id=id, rows=rows, parallelism=parallelism)
+        )
+        print("future-->", future)
+
     async def append_rows_async(
         self,
         *,
@@ -184,6 +204,7 @@ class ProjectsController(BaseController):
             while limit.locked():
                 time.sleep(1)
 
+        print(tasks, "gather")
         await asyncio.gather(*tasks)
 
         return RowsAppended(status="success")
@@ -192,9 +213,12 @@ class ProjectsController(BaseController):
         self, id: str, rows: List[Dict[str, Any]], limit: asyncio.Semaphore
     ) -> Dict[str, Any]:
         async with limit:
+            print("_push_chunks")
             job = await self._push_chunks(id, rows)
+            print("_push_chunks after?", job)
             while True:
                 completed = await self._are_inference_completed(job["job_id"], rows)
+                print("_are_inference_completed?", completed, job["job_id"])
                 if completed:
                     break
                 else:
@@ -202,6 +226,7 @@ class ProjectsController(BaseController):
         return job
 
     async def _push_chunks(self, id: str, rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+        print("_push_chunks", "/projects/{id}/rows/bulk")
         response = await self.post_async(
             path="/projects/{id}/rows/bulk",
             path_params={"id": id},
@@ -209,6 +234,7 @@ class ProjectsController(BaseController):
             allowed_codes={202},
         )
         content: Dict[str, Any] = response.json()
+        print("-->", content)
         return content
 
     async def _are_inference_completed(self, job_id: str, rows: List[Dict[str, Any]]) -> bool:

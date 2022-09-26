@@ -2,6 +2,8 @@ import unittest
 from datetime import datetime
 from typing import Any, ClassVar, Dict, List, Optional, cast
 
+import pytest
+
 from caplena.api.api_exception import ApiException
 from caplena.controllers import ProjectsController
 from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
@@ -260,6 +262,12 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual("pending", result.status)
         self.assertEqual(2, result.queued_rows_count)
         self.assertEqual(1.02, result.estimated_minutes)
+
+    def test_appending_async_rows_succeeds(self) -> None:
+        project = self.create_project()
+        result = self.controller.append_rows_sync(id=project.id, rows=project_rows_create_payload())
+
+        self.assertEqual("success", result)
 
     def test_appending_single_row_succeeds(self) -> None:
         project = self.create_project()
