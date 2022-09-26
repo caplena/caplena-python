@@ -171,11 +171,12 @@ class ApiRequestor:
         # retry: Optional[HttpRetry] = None,
     ) -> httpx.Response:
 
-        data = None
+        content = None
         headers = headers if headers is not None else {}
         if json is not None:
             headers["content-type"] = "application/json"
             data = dumps(json, cls=JsonDateEncoder)
+            content = data.encode("utf-8")
             self.logger.debug("Sending request to Caplena API", data=data)
 
         absolute_uri = self.build_uri(
@@ -195,7 +196,7 @@ class ApiRequestor:
                 method=method.method,
                 url=absolute_uri,
                 headers=headers,
-                data=data,
+                content=content,
                 timeout=timeout,
                 # retry=retry,
             )
