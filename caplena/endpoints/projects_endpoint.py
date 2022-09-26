@@ -192,9 +192,8 @@ class ProjectsController(BaseController):
             tasks.append(task)
 
             while limit.locked():
-                time.sleep(1)
+                await asyncio.sleep(1)
 
-        print(tasks, "gather")
         await asyncio.gather(*tasks)
 
         return RowsAppended(status="success")
@@ -212,7 +211,7 @@ class ProjectsController(BaseController):
                 if completed:
                     break
                 else:
-                    time.sleep(3)
+                    await asyncio.sleep(3)
         return job
 
     async def _push_chunks(self, id: str, rows: List[Dict[str, Any]]) -> Dict[str, Any]:
