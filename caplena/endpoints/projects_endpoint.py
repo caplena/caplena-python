@@ -161,11 +161,8 @@ class ProjectsController(BaseController):
         rows: List[Dict[str, Any]],
         parallelism: int = 3,
     ) -> None:
-        loop = asyncio.get_event_loop()
-        future = loop.run_until_complete(
-            self.append_rows_async(id=id, rows=rows, parallelism=parallelism)
-        )
-        print("future-->", future)
+        result = asyncio.run(self.append_rows_async(id=id, rows=rows, parallelism=parallelism))
+        print("result-->", result)
 
     async def append_rows_async(
         self,
