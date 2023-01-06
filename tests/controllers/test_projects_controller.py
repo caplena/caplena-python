@@ -231,7 +231,12 @@ class ProjectsControllerTests(unittest.TestCase):
         our_strengths.metadata.learns_from = None
         project.save()
         expected_dict["columns"][0]["metadata"]["learns_from"] = None
-        self.assertDictEqual(project.dict(), expected_dict)
+
+        # last modified is updated
+        project_dict = project.dict()
+        project_dict.pop("last_modified")
+        expected_dict.pop("last_modified")
+        self.assertDictEqual(project_dict, expected_dict)
 
     def test_listing_all_projects_succeeds(self) -> None:
         project = self.create_project()
@@ -432,9 +437,13 @@ class ProjectsControllerTests(unittest.TestCase):
         expected_dict["columns"][0].update(
             {"value": "this is a new text value.", "was_reviewed": True}
         )
+        computed_row_fields = {"last_modified"}
         # computed fields are updated when the value is changed, so don't compare them
-        computed_fields = {"sentiment_overall", "translated_value", "topics"}
-        for computed_field in computed_fields:
+        for field in computed_row_fields:
+            expected_dict.pop(field)
+            row_dict.pop(field)
+        computed_tta_column_fields = {"sentiment_overall", "translated_value", "topics"}
+        for computed_field in computed_tta_column_fields:
             expected_dict["columns"][0].pop(computed_field)
             row_dict["columns"][0].pop(computed_field)
         expected_dict["columns"][1].update({"value": 100000})
