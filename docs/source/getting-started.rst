@@ -9,7 +9,7 @@ Installation
 Minimum Version
 ~~~~~~~~~~~~~~~
 
-We recommend using the latest version of Python. Caplena supports Python 3.7 and newer.
+We recommend using the latest version of Python. Caplena supports Python 3.8 and newer.
 
 Dependencies
 ~~~~~~~~~~~~
@@ -46,7 +46,7 @@ Create a new file :code:`main.py` and import the Caplena client in your applicat
 
 Next, you'll want to create a new client, replacing :code:`YOUR_API_KEY` with your account's
 API key. If you don't know your key, head over to our `app <https://caplena.com/app/account?tab=api`
-and generate a new one. 
+and generate a new one.
 
 .. code-block:: python
 
