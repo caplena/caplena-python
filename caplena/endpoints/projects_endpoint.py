@@ -649,7 +649,13 @@ class ListedProject(BaseResource[ProjectsController]):
 class RowsAppend(BaseObject[ProjectsController]):
     """The bulk row create response object."""
 
-    __fields__ = {"status", "queued_rows_count", "estimated_minutes"}
+    class RowsAppendResult(BaseObject[ProjectsController]):
+        __fields__ = {"id"}
+
+        id: str
+        """The identifier of the row that was appended."""
+
+    __fields__ = {"status", "queued_rows_count", "estimated_minutes", "results"}
 
     status: Literal["pending"]
     """Status of the bulk append operation."""
@@ -658,7 +664,17 @@ class RowsAppend(BaseObject[ProjectsController]):
     """Number of rows that were queued for appending."""
 
     estimated_minutes: float
-    """Estimation in minutes about how long this bulk opertion will approximately take."""
+    """Estimation in minutes about how long this bulk operation will approximately take."""
+
+    results: CaplenaList[RowsAppendResult]
+    """The results of the bulk append operation."""
+
+    @classmethod
+    def parse_obj(cls, obj: Dict[str, Any]) -> "RowsAppend":
+        obj["results"] = CaplenaList(
+            values=[cls.RowsAppendResult.parse_obj(res) for res in obj["results"]]
+        )
+        return super().parse_obj(obj)
 
 
 class Row(BaseResource[ProjectsController]):

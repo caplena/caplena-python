@@ -260,11 +260,13 @@ class ProjectsControllerTests(unittest.TestCase):
 
     def test_appending_multiple_rows_succeeds(self) -> None:
         project = self.create_project()
-        result = self.controller.append_rows(id=project.id, rows=project_rows_create_payload())
+        response = self.controller.append_rows(id=project.id, rows=project_rows_create_payload())
 
-        self.assertEqual("pending", result.status)
-        self.assertEqual(2, result.queued_rows_count)
-        self.assertEqual(1.02, result.estimated_minutes)
+        self.assertEqual("pending", response.status)
+        self.assertEqual(2, response.queued_rows_count)
+        self.assertEqual(1.02, response.estimated_minutes)
+        self.assertEqual(2, len(response.results))
+        self.assertTrue(all([isinstance(row.id, str) for row in response.results]))
 
     def test_appending_single_row_succeeds(self) -> None:
         project = self.create_project()
