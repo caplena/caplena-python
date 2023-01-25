@@ -1,9 +1,9 @@
-from typing import Iterable, Type, Union
+from typing import Type, Union
 
 from caplena.api import ApiBaseUri, ApiVersion
 from caplena.configuration import Configuration
 from caplena.controllers import ProjectsController
-from caplena.http.http_client import HttpClient, HttpMethod, HttpRetry
+from caplena.http.http_client import HttpClient, HttpRetry
 from caplena.http.requests_http_client import RequestsHttpClient
 from caplena.logging.logger import LoggingLevel
 
@@ -49,8 +49,6 @@ class Client:
         timeout: int = HttpClient.DEFAULT_TIMEOUT,
         max_retries: int = HttpRetry.DEFAULT_MAX_RETRIES,
         backoff_factor: float = HttpRetry.DEFAULT_BACKOFF_FACTOR,
-        retry_status_codes: Iterable[int] = HttpRetry.DEFAULT_STATUS_CODES_TO_RETRY,
-        retry_methods: Iterable[HttpMethod] = HttpRetry.DEFAULT_ALLOWED_METHOD,
         http_client: Union[Type[HttpClient], HttpClient] = RequestsHttpClient,
         logging_level: LoggingLevel = LoggingLevel.WARNING,
     ):
@@ -62,8 +60,6 @@ class Client:
             timeout=timeout,
             max_retries=max_retries,
             backoff_factor=backoff_factor,
-            retry_status_codes=retry_status_codes,
-            retry_methods=retry_methods,
             logging_level=logging_level,
         )
 

@@ -1,6 +1,8 @@
 from enum import Enum
 from json import dumps
-from typing import Any, ClassVar, Dict, Iterable, List, Optional, Union
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Type, Union
+
+import backoff as backoff
 
 from caplena.http.http_response import HttpResponse
 from caplena.http.json_encoder import JsonDateEncoder
@@ -25,25 +27,17 @@ class HttpMethod(Enum):
 
 
 class HttpRetry:
-    DEFAULT_MAX_RETRIES: ClassVar[int] = 0
+    DEFAULT_MAX_RETRIES: ClassVar[int] = 5
     DEFAULT_BACKOFF_FACTOR: ClassVar[float] = 2
-    DEFAULT_STATUS_CODES_TO_RETRY: ClassVar[Iterable[int]] = frozenset(
-        {408, 409, 413, 429, 500, 502, 503, 504}
-    )
-    DEFAULT_ALLOWED_METHOD = frozenset({HttpMethod.GET, HttpMethod.PUT, HttpMethod.HEAD})
 
     def __init__(
         self,
         *,
         max_retries: int = DEFAULT_MAX_RETRIES,
         backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
-        retry_status_codes: Iterable[int] = DEFAULT_STATUS_CODES_TO_RETRY,
-        retry_methods: Iterable[HttpMethod] = DEFAULT_ALLOWED_METHOD,
     ):
         self.max_retries = max_retries
         self.backoff_factor = backoff_factor
-        self.retry_status_codes = retry_status_codes
-        self.retry_methods = retry_methods
 
 
 class HttpClient:
@@ -51,6 +45,7 @@ class HttpClient:
     DEFAULT_RETRY: ClassVar[HttpRetry] = HttpRetry()
     DEFAULT_LOGGER: ClassVar[Logger] = DefaultLogger("http[shared]")
     DEFAULT_ENCODER: ClassVar[JsonDateEncoder] = JsonDateEncoder()
+    RETRYABLE_EXCEPTIONS: Sequence[Type[Exception]] = []
 
     @property
     def identifier(self) -> str:
@@ -90,14 +85,23 @@ class HttpClient:
             data = dumps(json, cls=JsonDateEncoder)
             self.logger.debug("Sending request to Caplena API", data=data)
 
-        # TODO: handle retry here
-        response = self.request_raw(
-            uri=uri,
-            method=method,
-            timeout=timeout,
-            headers=headers,
-            data=data,
+        @backoff.on_exception(
+            backoff.expo,
+            self.RETRYABLE_EXCEPTIONS,
+            max_tries=retry.max_retries,
+            factor=retry.backoff_factor,
+            jitter=backoff.full_jitter,
         )
+        def _do_request() -> HttpResponse:
+            return self.request_raw(
+                uri=uri,
+                method=method,
+                timeout=timeout,
+                headers=headers,
+                data=data,
+            )
+
+        response = _do_request()
         self.logger.debug(
             "Received response from server",
             status_code=str(response.status_code),
