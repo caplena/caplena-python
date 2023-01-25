@@ -74,14 +74,14 @@ class HttpClient:
         timeout: Optional[int] = None,
         retry: Optional[HttpRetry] = None,
     ) -> HttpResponse:
-        timeout = self.get_timeout(timeout)
+        req_timeout: int = self.get_timeout(timeout)
         retry = self.get_retry(retry)
         self.logger.info("Sending request to Caplena API", method=str(method), uri=uri)
 
         data = None
-        headers = headers if headers is not None else {}
+        req_headers: Dict[str, str] = headers if headers is not None else {}
         if json is not None:
-            headers["content-type"] = "application/json"
+            req_headers["content-type"] = "application/json"
             data = dumps(json, cls=JsonDateEncoder)
             self.logger.debug("Sending request to Caplena API", data=data)
 
@@ -96,8 +96,8 @@ class HttpClient:
             return self.request_raw(
                 uri=uri,
                 method=method,
-                timeout=timeout,
-                headers=headers,
+                timeout=req_timeout,
+                headers=req_headers,
                 data=data,
             )
 
