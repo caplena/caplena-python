@@ -8,6 +8,8 @@ from caplena.http.http_response import HttpResponse
 
 
 class RequestsHttpClient(HttpClient):
+    RETRYABLE_EXCEPTIONS = (requests.exceptions.RequestException,)
+
     @property
     def identifier(self) -> str:
         return f"requests({requests.__version__})"
@@ -38,7 +40,7 @@ class RequestsHttpClient(HttpClient):
             headers=headers,
             timeout=timeout,
         )
-        if response.status_code > 500:
+        if response.status_code >= 500:
             response.raise_for_status()
 
         # note: we only support utf-8 encodings

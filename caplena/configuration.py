@@ -1,7 +1,7 @@
-from typing import Iterable, Type, Union
+from typing import Type, Union
 
 from caplena.api import ApiBaseUri, ApiRequestor, ApiVersion
-from caplena.http.http_client import HttpClient, HttpMethod, HttpRetry
+from caplena.http.http_client import HttpClient, HttpRetry
 from caplena.logging.default_logger import DefaultLogger
 from caplena.logging.logger import Logger, LoggingLevel
 
@@ -32,14 +32,6 @@ class Configuration:
         return self._backoff_factor
 
     @property
-    def retry_status_codes(self) -> Iterable[int]:
-        return self._retry_status_codes
-
-    @property
-    def retry_methods(self) -> Iterable[HttpMethod]:
-        return self._retry_methods
-
-    @property
     def http_client(self) -> HttpClient:
         return self._http_client
 
@@ -65,8 +57,6 @@ class Configuration:
         timeout: int = HttpClient.DEFAULT_TIMEOUT,
         max_retries: int = HttpRetry.DEFAULT_MAX_RETRIES,
         backoff_factor: float = HttpRetry.DEFAULT_BACKOFF_FACTOR,
-        retry_status_codes: Iterable[int] = HttpRetry.DEFAULT_STATUS_CODES_TO_RETRY,
-        retry_methods: Iterable[HttpMethod] = HttpRetry.DEFAULT_ALLOWED_METHOD,
         logging_level: LoggingLevel = LoggingLevel.WARNING,
     ):
         self._api_key = api_key
@@ -75,8 +65,6 @@ class Configuration:
         self._timeout = timeout
         self._max_retries = max_retries
         self._backoff_factor = backoff_factor
-        self._retry_status_codes = retry_status_codes
-        self._retry_methods = retry_methods
         self._logging_level = logging_level
 
         self._logger = DefaultLogger("caplena", self._logging_level)
@@ -86,8 +74,6 @@ class Configuration:
             timeout=timeout,
             max_retries=max_retries,
             backoff_factor=backoff_factor,
-            retry_status_codes=retry_status_codes,
-            retry_methods=retry_methods,
         )
         self._api_requestor = ApiRequestor(
             http_client=self._http_client,
@@ -102,8 +88,6 @@ class Configuration:
         timeout: int = HttpClient.DEFAULT_TIMEOUT,
         max_retries: int = HttpRetry.DEFAULT_MAX_RETRIES,
         backoff_factor: float = HttpRetry.DEFAULT_BACKOFF_FACTOR,
-        retry_status_codes: Iterable[int] = HttpRetry.DEFAULT_STATUS_CODES_TO_RETRY,
-        retry_methods: Iterable[HttpMethod] = HttpRetry.DEFAULT_ALLOWED_METHOD,
     ) -> HttpClient:
         # check if we get http client instance or if we should instantiate it ourselves
         if not isinstance(http_client, HttpClient):
@@ -113,7 +97,5 @@ class Configuration:
         http_client.timeout = timeout
         http_client.retry.max_retries = max_retries
         http_client.retry.backoff_factor = backoff_factor
-        http_client.retry.retry_status_codes = retry_status_codes
-        http_client.retry.retry_methods = retry_methods
 
         return http_client
