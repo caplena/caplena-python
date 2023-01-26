@@ -2,7 +2,7 @@ from enum import Enum
 from json import dumps
 from typing import Any, ClassVar, Dict, List, Optional, Sequence, Type, Union
 
-import backoff as backoff
+import backoff
 
 from caplena.http.http_response import HttpResponse
 from caplena.http.json_encoder import JsonDateEncoder
