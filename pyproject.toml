@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "caplena"
-version = "1.0.1"
+version = "1.0.2"
 authors = [{name = "Caplena", email = "support@caplena.com"}]
 maintainers = [{name = "Pascal de Buren", email = "pascal@caplena.com"}]
 keywords = ["caplena", "api", "nlp", "customer feedback"]
@@ -21,17 +21,17 @@ classifiers = [
     "Topic :: Software Development",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
 ]
 license = {file = "LICENSE"}
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 dynamic = ["description"]
 dependencies = [
     "requests >=2.26.0",
     "typing-extensions >=4.0.0",
+    "backoff >=2.2.0"
 ]
 
 [project.optional-dependencies]
