@@ -7,7 +7,7 @@ from caplena.helpers import Helpers
 class HelperTests(unittest.TestCase):
     def test_user_agent_succeeds(self) -> None:
         user_agent = Helpers.get_user_agent(identifier="requests")
-        self.assertRegex(user_agent, r"requests/0\.0\.\d python/3\.\d\.\d")
+        self.assertRegex(user_agent, r"requests/\d\.\d\.\d python/3\.\d\.\d")
 
     def test_from_rfc3339_datetime_succeeds(self) -> None:
         dates = [
