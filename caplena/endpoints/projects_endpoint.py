@@ -159,6 +159,8 @@ class ProjectsController(BaseController):
         """Checks statuses of all upload tasks for requested project
         or only requested upload task if it's ID is provided
 
+        Note: We keep the status of upload tasks only for the 7 days. After that time task info won't be available.
+
         :param project_id: The project identifier.
         :param task_id: Task id which status will be checked
         :raises caplena.api.ApiException: An API exception.

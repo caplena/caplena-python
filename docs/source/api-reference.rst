@@ -35,6 +35,9 @@ Resources
 .. autoclass:: caplena.resources.RowsAppend
     :members:
 
+.. autoclass:: caplena.resources.RowsAppendStatus
+    :members:
+
 .. autoclass:: caplena.resources.Row
     :members:
 

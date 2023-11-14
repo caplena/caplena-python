@@ -32,6 +32,23 @@ Or find mulitple projects using filters:
     print(project.id, "-", project.name)
 
 
+Retrieving Upload status
+~~~~~~~~~~~~~~~
+Get status of all bulk upload tasks from the last 7 days:
+
+.. code-block:: python
+
+  statuses = client.projects.get_append_status(project_id=project.id)
+
+
+Get status of one upload task
+
+.. code-block:: python
+
+  status = client.projects.get_append_status(project_id=project.id, task_id="18e5b9c4-3498-45e9-a1ac-77659fdd13e1")
+
+
+
 Filtering examples
 ---------------
 
