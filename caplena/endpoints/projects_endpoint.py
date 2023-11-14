@@ -1,7 +1,8 @@
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
-from typing_extensions import Literal
+from typing_extensions import Literal, Self
 
 from caplena.api import ApiOrdering
 from caplena.constants import LIST_PAGINATION_LIMIT, NOT_SET
@@ -151,6 +152,35 @@ class ProjectsController(BaseController):
         )
 
         return self.build_response(response, resource=RowsAppend)
+
+    def get_append_status(
+        self, *, project_id: str, task_id: Optional[Union[uuid.UUID, str]] = None
+    ) -> "RowsAppendStatus":
+        """Checks statuses of all upload tasks for requested project
+        or only requested upload task if it's ID is provided
+
+        :param project_id: The project identifier.
+        :param task_id: Task id which status will be checked
+        :raises caplena.api.ApiException: An API exception.
+        :raises ValueError: when task_id is not proper UUID or uuid in a string
+        """
+        params = {"project_id": project_id}
+        if task_id and not isinstance(task_id, uuid.UUID):
+            try:
+                task_id = uuid.UUID(task_id)
+            except (AttributeError, ValueError) as exc:
+                raise ValueError("task_id must be UUID or uuid in a string") from exc
+        url = "/projects/{project_id}/rows/bulk"
+        if task_id:
+            url = f"{url}/{task_id}"
+            params["task_id"] = task_id
+
+        response = self.get(
+            path=url,
+            path_params=params,
+            allowed_codes={200},
+        )
+        return self.build_response(response, resource=RowsAppendStatus)
 
     def append_row(
         self,
@@ -393,7 +423,6 @@ class ProjectDetail(BaseResource[ProjectsController]):
             return super().parse_obj(obj)
 
     class Auxiliary(Column):
-
         type: Literal["numerical", "boolean", "text", "date", "any"]
         """Type of this column."""
 
@@ -675,6 +704,32 @@ class RowsAppend(BaseObject[ProjectsController]):
             values=[cls.RowsAppendResult.parse_obj(res) for res in obj["results"]]
         )
         return super().parse_obj(obj)
+
+
+class RowsAppendStatus(BaseObject[ProjectsController]):
+    """Status of requested task and it's subtasks"""
+
+    class MeerkatSubTaskStatus(BaseObject[ProjectsController]):
+        """Subtask and it's sub-subtasks status"""
+
+        __fields__ = {"id", "status", "subtasks"}
+
+        id: uuid.UUID
+        """ID of the subtask"""
+
+        status: Optional[Literal["in_progress", "succeeded", "failed", "debounced", "timed_out"]]
+        """Status of the subtask"""
+
+        subtasks: Optional[List[Self]]
+        """subtasks of the task"""
+
+    __fields__ = {"status", "tasks"}
+
+    status: Literal["in_progress", "succeeded", "failed", "debounced", "timed_out"]
+    """Status of requested upload task"""
+
+    tasks: Optional[List[MeerkatSubTaskStatus]]
+    """tasks of the project"""
 
 
 class Row(BaseResource[ProjectsController]):
