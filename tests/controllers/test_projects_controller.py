@@ -275,9 +275,9 @@ class ProjectsControllerTests(unittest.TestCase):
         all_tasks_status = self.controller.get_append_status(project_id=project.id)
         self.assertIn(all_tasks_status.status, ["in_progress", "succeeded"])
         # As we do not re-play api responses in tests here we do not know if status is already finished or no
-        self.assertEqual(len(all_tasks_status.tasks), 2)
+        self.assertEqual(len(all_tasks_status.dict()["tasks"]), 2)
 
-        tasks_ids = [task["id"] for task in all_tasks_status.tasks]
+        tasks_ids = [task["id"] for task in all_tasks_status.tasks]  # type: ignore[index,union-attr]
         for task_id in tasks_ids:
             task_data = self.controller.get_append_status(project_id=project.id, task_id=task_id)
             self.assertIn(task_data.status, ["in_progress", "succeeded"])

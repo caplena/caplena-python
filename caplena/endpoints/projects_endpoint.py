@@ -175,7 +175,7 @@ class ProjectsController(BaseController):
         url = "/projects/{project_id}/rows/bulk"
         if task_id:
             url = f"{url}/{task_id}"
-            params["task_id"] = task_id
+            params["task_id"] = str(task_id)
 
         response = self.get(
             path=url,
