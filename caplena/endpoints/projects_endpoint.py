@@ -719,7 +719,7 @@ class RowsAppendStatus(BaseObject[ProjectsController]):
         id: uuid.UUID
         """ID of the subtask"""
 
-        status: Optional[Literal["in_progress", "succeeded", "failed", "debounced", "timed_out"]]
+        status: Optional[Literal["in_progress", "succeeded", "failed", "timed_out"]]
         """Status of the subtask"""
 
         subtasks: Optional[List[Self]]
@@ -727,7 +727,7 @@ class RowsAppendStatus(BaseObject[ProjectsController]):
 
     __fields__ = {"status", "tasks"}
 
-    status: Literal["in_progress", "succeeded", "failed", "debounced", "timed_out"]
+    status: Literal["in_progress", "succeeded", "failed", "timed_out"]
     """Status of requested upload task"""
 
     tasks: Optional[List[MeerkatSubTaskStatus]]
