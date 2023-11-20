@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, ClassVar, Dict, List, Optional, cast
 
 from caplena.api.api_exception import ApiException
@@ -275,7 +275,10 @@ class ProjectsControllerTests(unittest.TestCase):
             {"ref": "our_strengths", "value": "Good price."},
             {"ref": "boolean_col", "value": False},
             {"ref": "text_col", "value": None},
-            {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
+            {
+                "ref": "date_col",
+                "value": datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
+            },
         ]
         row = self.controller.append_row(id=project.id, columns=columns)
 
@@ -321,7 +324,9 @@ class ProjectsControllerTests(unittest.TestCase):
 
         self.assertEqual("date_col", date_col.ref)
         self.assertEqual("date", date_col.type)
-        self.assertEqual(datetime(year=2020, month=10, day=10, hour=17), date_col.value)
+        self.assertEqual(
+            datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc), date_col.value
+        )
 
     def test_listing_all_rows_succeeds(self) -> None:
         project = self.create_project()
@@ -332,7 +337,10 @@ class ProjectsControllerTests(unittest.TestCase):
                 {"ref": "our_strengths", "value": "Some other text."},
                 {"ref": "boolean_col", "value": False},
                 {"ref": "text_col", "value": "iphone"},
-                {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
+                {
+                    "ref": "date_col",
+                    "value": datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
+                },
             ],
         )
         row2 = self.controller.append_row(
@@ -342,7 +350,10 @@ class ProjectsControllerTests(unittest.TestCase):
                 {"ref": "our_strengths", "value": "This is my review. Very nice."},
                 {"ref": "boolean_col", "value": True},
                 {"ref": "text_col", "value": "samsung"},
-                {"ref": "date_col", "value": datetime(year=2000, month=4, day=4, hour=4)},
+                {
+                    "ref": "date_col",
+                    "value": datetime(year=2000, month=4, day=4, hour=4, tzinfo=timezone.utc),
+                },
             ],
         )
         rows = [row1.dict(), row2.dict()]
@@ -363,7 +374,10 @@ class ProjectsControllerTests(unittest.TestCase):
                 {"ref": "our_strengths", "value": "Some other text."},
                 {"ref": "boolean_col", "value": False},
                 {"ref": "text_col", "value": "iphone"},
-                {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
+                {
+                    "ref": "date_col",
+                    "value": datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
+                },
             ],
         )
 
@@ -387,7 +401,10 @@ class ProjectsControllerTests(unittest.TestCase):
                 {"ref": "our_strengths", "value": "Some other text."},
                 {"ref": "boolean_col", "value": False},
                 {"ref": "text_col", "value": "iphone"},
-                {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
+                {
+                    "ref": "date_col",
+                    "value": datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
+                },
             ],
         )
         retrieved = self.controller.retrieve_row(p_id=project.id, r_id=row.id)
@@ -405,7 +422,10 @@ class ProjectsControllerTests(unittest.TestCase):
                 {"ref": "our_strengths", "value": "Some other text."},
                 {"ref": "boolean_col", "value": False},
                 {"ref": "text_col", "value": "iphone"},
-                {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
+                {
+                    "ref": "date_col",
+                    "value": datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
+                },
             ],
         )
         interim_num_rows = self.controller.list_rows(id=project.id, limit=1).count
@@ -424,7 +444,10 @@ class ProjectsControllerTests(unittest.TestCase):
                 {"ref": "our_strengths", "value": "Some other text."},
                 {"ref": "boolean_col", "value": False},
                 {"ref": "text_col", "value": "iphone"},
-                {"ref": "date_col", "value": datetime(year=2020, month=10, day=10, hour=17)},
+                {
+                    "ref": "date_col",
+                    "value": datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
+                },
             ],
         )
         expected_dict = row.dict()
