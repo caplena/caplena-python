@@ -270,9 +270,13 @@ class ProjectsControllerTests(unittest.TestCase):
 
     def test_getting_status_of_multiple_rows_upload_task(self) -> None:
         project = self.create_project()
-        self.controller.append_rows(id=project.id, rows=project_rows_create_payload())
-        self.controller.append_rows(id=project.id, rows=project_rows_create_payload())
+        row_1 = project.append_rows(rows=project_rows_create_payload())
+        row_2 = project.append_rows(rows=project_rows_create_payload())
+
         all_tasks_status = self.controller.get_append_status(project_id=project.id)
+        all_tasks_ids = [task["id"] for task in all_tasks_status.tasks]
+        self.assertIn(row_1.task_id, all_tasks_ids)
+        self.assertIn(row_2.task_id, all_tasks_ids)
         self.assertIn(all_tasks_status.status, ["in_progress", "succeeded"])
         # As we do not re-play api responses in tests here we do not know if status is already finished or no
         self.assertEqual(len(all_tasks_status.dict()["tasks"]), 2)
