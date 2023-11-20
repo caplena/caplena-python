@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Protocol, Union
 
 from typing_extensions import Literal, Self
 
@@ -283,7 +283,24 @@ class ProjectsController(BaseController):
 # --- Resources & Objects--- #
 
 
-class RowOperationsMixin:
+class OperationsProtocol(Protocol):
+    # controller: ProjectsController
+    @property
+    def controller(self) -> ProjectsController:
+        ...
+
+    @property
+    def id(self) -> str:
+        ...
+
+    def _refresh_from(self, *, attrs: Dict[str, Any]) -> None:
+        ...
+
+    def modified_dict(self) -> Any:
+        ...
+
+
+class RowOperationsMixin(OperationsProtocol, Protocol):
     def list_rows(
         self,
         *,
@@ -340,7 +357,7 @@ class RowOperationsMixin:
         return self.controller.get_append_status(project_id=self.id, task_id=task_id)
 
 
-class BaseProjectOperationsMixin:
+class BaseProjectOperationsMixin(OperationsProtocol, Protocol):
     def remove(self) -> None:
         """Removes this project.
 
@@ -871,9 +888,6 @@ class Row(BaseResource[ProjectsController]):
 
         :raises caplena.api.ApiException: An API exception.
         """
-        import ipdb
-
-        ipdb.sset_trace()
         modified_dict = self.modified_dict()
         if modified_dict != NOT_SET:
             row = self.controller.update_row(

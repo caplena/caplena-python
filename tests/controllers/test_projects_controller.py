@@ -274,7 +274,8 @@ class ProjectsControllerTests(unittest.TestCase):
         row_2 = project.append_rows(rows=project_rows_create_payload())
 
         all_tasks_status = self.controller.get_append_status(project_id=project.id)
-        all_tasks_ids = [task["id"] for task in all_tasks_status.tasks]
+        self.assertIsNotNone(all_tasks_status.tasks)
+        all_tasks_ids = [task["id"] for task in all_tasks_status.tasks]  # type: ignore[index,union-attr]
         self.assertIn(row_1.task_id, all_tasks_ids)
         self.assertIn(row_2.task_id, all_tasks_ids)
         self.assertIn(all_tasks_status.status, ["in_progress", "succeeded"])

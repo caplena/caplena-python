@@ -18,14 +18,14 @@ class ApiOrdering:
 
     def to_query_params(self) -> Dict[str, str]:
         stringified_ordering: List[str] = []
-        for (direction, name) in self._ordering:
+        for direction, name in self._ordering:
             name = Helpers.build_escaped_filter_str(name)
             stringified_ordering.append(f"{direction}:{name}")
         return {"order_by": ";".join(stringified_ordering)}
 
     def __str__(self) -> str:
         stringified_ordering: List[str] = []
-        for (direction, name) in self._ordering:
+        for direction, name in self._ordering:
             stringified_ordering.append(f"{direction}({name})")
         return "ApiOrdering(" + ", ".join(stringified_ordering) + ")"
 
