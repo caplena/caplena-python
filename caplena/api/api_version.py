@@ -4,8 +4,6 @@ from enum import Enum
 class ApiVersion(Enum):
     DEFAULT = 0
     VER_2022_11_22 = 3
-    VER_2022_12_22 = 4
-    VER_2023_01_07 = 5
 
     @property
     def version(self) -> str:
