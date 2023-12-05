@@ -40,7 +40,8 @@ test = [
     "pytest",
     "pytest-watch",
     "requests-mock",
-    "types-cachetools"
+    "types-cachetools",
+    "types-six",
 ]
 doc = [
     "sphinx",
