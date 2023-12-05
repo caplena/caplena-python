@@ -2,6 +2,7 @@ import time
 import unittest
 from datetime import datetime, timezone
 from typing import Any, ClassVar, Dict, List, Optional, cast
+from uuid import uuid4
 
 import requests_mock
 
@@ -497,12 +498,17 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertDictEqual(row_dict, expected_dict)
 
     def test_limit_calls_to_backend_on_upload_task(self) -> None:
+        task_uuid = uuid4()
         with requests_mock.Mocker() as mocked_project_page:
             pr1_mock = mocked_project_page.get(
                 "http://localhost:8000/v2/projects/1/rows/bulk", json={"tasks": [], "status": ""}
             )
             pr2_mock = mocked_project_page.get(
                 "http://localhost:8000/v2/projects/2/rows/bulk", json={"tasks": [], "status": ""}
+            )
+            task_mock = mocked_project_page.get(
+                f"http://localhost:8000/v2/projects/1/rows/bulk/{task_uuid}",
+                json={"tasks": [], "status": ""},
             )
             self.controller.get_append_status(project_id="1")
             self.assertEqual(pr1_mock.call_count, 1)
@@ -517,3 +523,5 @@ class ProjectsControllerTests(unittest.TestCase):
             time.sleep(10)
             self.controller.get_append_status(project_id="1")
             self.assertEqual(pr1_mock.call_count, 2)
+            self.controller.get_append_status(project_id="1", task_id=task_uuid)
+            self.assertEqual(task_mock.call_count, 1)
