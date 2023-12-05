@@ -496,7 +496,7 @@ class ProjectsControllerTests(unittest.TestCase):
         expected_dict["columns"][1].update({"value": 100000})
         self.assertDictEqual(row_dict, expected_dict)
 
-    def test_limit_calls_to_backend_on_upload_task(self):
+    def test_limit_calls_to_backend_on_upload_task(self) -> None:
         with requests_mock.Mocker() as mocked_project_page:
             pr1_mock = mocked_project_page.get(
                 "http://localhost:8000/v2/projects/1/rows/bulk", json={"tasks": [], "status": ""}
