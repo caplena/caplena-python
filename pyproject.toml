@@ -31,13 +31,15 @@ dynamic = ["description"]
 dependencies = [
     "requests >=2.26.0",
     "typing-extensions >=4.0.0",
-    "backoff >=2.2.0"
+    "backoff >=2.2.0",
+    "cachetools>=5.0.0",
 ]
 
 [project.optional-dependencies]
 test = [
     "pytest",
     "pytest-watch",
+    "requests-mock",
 ]
 doc = [
     "sphinx",

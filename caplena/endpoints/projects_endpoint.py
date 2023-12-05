@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Protocol, Union
 
+from cachetools.func import ttl_cache
 from typing_extensions import Literal, Self
 
 from caplena.api import ApiOrdering
@@ -14,6 +15,7 @@ from caplena.iterator import CaplenaIterator
 from caplena.list import CaplenaList
 
 # --- Controller --- #
+TTL_STATUS_CACHE_EXPIRE = 10
 
 
 class ProjectsController(BaseController):
@@ -153,6 +155,7 @@ class ProjectsController(BaseController):
 
         return self.build_response(response, resource=RowsAppend)
 
+    @ttl_cache(ttl=TTL_STATUS_CACHE_EXPIRE)
     def get_append_status(
         self, *, project_id: str, task_id: Optional[Union[uuid.UUID, str]] = None
     ) -> "RowsAppendStatus":

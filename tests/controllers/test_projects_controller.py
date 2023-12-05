@@ -1,6 +1,9 @@
+import time
 import unittest
 from datetime import datetime, timezone
 from typing import Any, ClassVar, Dict, List, Optional, cast
+
+import requests_mock
 
 from caplena.api.api_exception import ApiException
 from caplena.controllers import ProjectsController
@@ -492,3 +495,25 @@ class ProjectsControllerTests(unittest.TestCase):
             row_dict["columns"][0].pop(computed_field)
         expected_dict["columns"][1].update({"value": 100000})
         self.assertDictEqual(row_dict, expected_dict)
+
+    def test_limit_calls_to_backend_on_upload_task(self):
+        with requests_mock.Mocker() as mocked_project_page:
+            pr1_mock = mocked_project_page.get(
+                "http://localhost:8000/v2/projects/1/rows/bulk", json={"tasks": [], "status": ""}
+            )
+            pr2_mock = mocked_project_page.get(
+                "http://localhost:8000/v2/projects/2/rows/bulk", json={"tasks": [], "status": ""}
+            )
+            self.controller.get_append_status(project_id="1")
+            self.assertEqual(pr1_mock.call_count, 1)
+            self.controller.get_append_status(project_id="1")
+            self.controller.get_append_status(project_id="1")
+            self.controller.get_append_status(project_id="1")
+            self.assertEqual(pr1_mock.call_count, 1)
+
+            self.controller.get_append_status(project_id="2")
+            self.assertEqual(pr2_mock.call_count, 1)
+
+            time.sleep(10)
+            self.controller.get_append_status(project_id="1")
+            self.assertEqual(pr1_mock.call_count, 2)
