@@ -160,11 +160,12 @@ class ProjectsController(BaseController):
         self, *, project_id: str, task_id: Optional[Union[uuid.UUID, str]] = None
     ) -> "RowsAppendStatus":
         """Checks statuses of all upload tasks for requested project
-        or only requested upload task if it's ID is provided
+        or only requested upload task if its ID is provided
 
         Note: We keep the status of upload tasks only for the 7 days. After that time task info won't be available.
 
-        :param project_id: The project identifier.
+        :param project_id: (Optional) The project identifier. If it's missing, all tasks statuses of the project are
+         returned.
         :param task_id: Task id which status will be checked
         :raises caplena.api.ApiException: An API exception.
         :raises ValueError: when task_id is not proper UUID or uuid in a string
@@ -348,7 +349,7 @@ class RowOperationsMixin(OperationsProtocol, Protocol):
         self, *, task_id: Optional[Union[uuid.UUID, str]] = None
     ) -> "RowsAppendStatus":
         """Checks statuses of all upload tasks for requested project
-        or only requested upload task if it's ID is provided
+        or only requested upload task if its ID is provided
 
         Note: We keep the status of upload tasks only for the 7 days. After that time task info won't be available.
 
@@ -690,10 +691,10 @@ class RowsAppend(BaseObject[ProjectsController]):
 
 
 class RowsAppendStatus(BaseObject[ProjectsController]):
-    """Status of requested task and it's subtasks"""
+    """Status of requested task and its subtasks"""
 
     class MeerkatSubTaskStatus(BaseObject[ProjectsController]):
-        """Subtask and it's sub-subtasks status"""
+        """Subtask and its sub-subtasks status"""
 
         __fields__ = {"id", "status", "subtasks"}
 
