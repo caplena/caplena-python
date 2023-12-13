@@ -1,6 +1,10 @@
+import time
 import unittest
 from datetime import datetime, timezone
 from typing import Any, ClassVar, Dict, List, Optional, cast
+from uuid import uuid4
+
+import requests_mock
 
 from caplena.api.api_exception import ApiException
 from caplena.controllers import ProjectsController
@@ -268,6 +272,25 @@ class ProjectsControllerTests(unittest.TestCase):
         self.assertEqual(2, len(response.results))
         self.assertTrue(all([isinstance(row.id, str) for row in response.results]))
 
+    def test_getting_status_of_multiple_rows_upload_task(self) -> None:
+        project = self.create_project()
+        row_1 = project.append_rows(rows=project_rows_create_payload())
+        row_2 = project.append_rows(rows=project_rows_create_payload())
+
+        all_tasks_status = self.controller.get_append_status(project_id=project.id)
+        self.assertIsNotNone(all_tasks_status.tasks)
+        all_tasks_ids = [task["id"] for task in all_tasks_status.tasks]  # type: ignore[index,union-attr]
+        self.assertIn(row_1.task_id, all_tasks_ids)
+        self.assertIn(row_2.task_id, all_tasks_ids)
+        self.assertIn(all_tasks_status.status, ["in_progress", "succeeded"])
+        # As we do not re-play api responses in tests here we do not know if status is already finished or no
+        self.assertEqual(len(all_tasks_status.dict()["tasks"]), 2)
+
+        tasks_ids = [task["id"] for task in all_tasks_status.tasks]  # type: ignore[index,union-attr]
+        for task_id in tasks_ids:
+            task_data = self.controller.get_append_status(project_id=project.id, task_id=task_id)
+            self.assertIn(task_data.status, ["in_progress", "succeeded"])
+
     def test_appending_single_row_succeeds(self) -> None:
         project = self.create_project()
         columns: List[Dict[str, Any]] = [
@@ -473,3 +496,32 @@ class ProjectsControllerTests(unittest.TestCase):
             row_dict["columns"][0].pop(computed_field)
         expected_dict["columns"][1].update({"value": 100000})
         self.assertDictEqual(row_dict, expected_dict)
+
+    def test_limit_calls_to_backend_on_upload_task(self) -> None:
+        task_uuid = uuid4()
+        with requests_mock.Mocker() as mocked_project_page:
+            pr1_mock = mocked_project_page.get(
+                "http://localhost:8000/v2/projects/1/rows/bulk", json={"tasks": [], "status": ""}
+            )
+            pr2_mock = mocked_project_page.get(
+                "http://localhost:8000/v2/projects/2/rows/bulk", json={"tasks": [], "status": ""}
+            )
+            task_mock = mocked_project_page.get(
+                f"http://localhost:8000/v2/projects/1/rows/bulk/{task_uuid}",
+                json={"tasks": [], "status": ""},
+            )
+            self.controller.get_append_status(project_id="1")
+            self.assertEqual(pr1_mock.call_count, 1)
+            self.controller.get_append_status(project_id="1")
+            self.controller.get_append_status(project_id="1")
+            self.controller.get_append_status(project_id="1")
+            self.assertEqual(pr1_mock.call_count, 1)
+
+            self.controller.get_append_status(project_id="2")
+            self.assertEqual(pr2_mock.call_count, 1)
+
+            time.sleep(10)
+            self.controller.get_append_status(project_id="1")
+            self.assertEqual(pr1_mock.call_count, 2)
+            self.controller.get_append_status(project_id="1", task_id=task_uuid)
+            self.assertEqual(task_mock.call_count, 1)
