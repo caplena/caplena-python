@@ -1,7 +1,9 @@
+import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Protocol, Union
 
-from typing_extensions import Literal
+from cachetools.func import ttl_cache
+from typing_extensions import Literal, Self
 
 from caplena.api import ApiOrdering
 from caplena.constants import LIST_PAGINATION_LIMIT, NOT_SET
@@ -13,6 +15,7 @@ from caplena.iterator import CaplenaIterator
 from caplena.list import CaplenaList
 
 # --- Controller --- #
+TTL_STATUS_CACHE_EXPIRE = 10
 
 
 class ProjectsController(BaseController):
@@ -152,6 +155,39 @@ class ProjectsController(BaseController):
 
         return self.build_response(response, resource=RowsAppend)
 
+    @ttl_cache(ttl=TTL_STATUS_CACHE_EXPIRE)
+    def get_append_status(
+        self, *, project_id: str, task_id: Optional[Union[uuid.UUID, str]] = None
+    ) -> "RowsAppendStatus":
+        """Checks statuses of all upload tasks for requested project
+        or only requested upload task if its ID is provided
+
+        Note: We keep the status of upload tasks only for the 7 days. After that time task info won't be available.
+
+        :param project_id: (Optional) The project identifier. If it's missing, all tasks statuses of the project are
+         returned.
+        :param task_id: Task id which status will be checked
+        :raises caplena.api.ApiException: An API exception.
+        :raises ValueError: when task_id is not proper UUID or uuid in a string
+        """
+        params = {"project_id": project_id}
+        if task_id and not isinstance(task_id, uuid.UUID):
+            try:
+                task_id = uuid.UUID(task_id)
+            except (AttributeError, ValueError) as exc:
+                raise ValueError("task_id must be UUID or uuid in a string") from exc
+        url = "/projects/{project_id}/rows/bulk"
+        if task_id:
+            url = f"{url}/{task_id}"
+            params["task_id"] = str(task_id)
+
+        response = self.get(
+            path=url,
+            path_params=params,
+            allowed_codes={200},
+        )
+        return self.build_response(response, resource=RowsAppendStatus)
+
     def append_row(
         self,
         *,
@@ -251,7 +287,110 @@ class ProjectsController(BaseController):
 # --- Resources & Objects--- #
 
 
-class ProjectDetail(BaseResource[ProjectsController]):
+class OperationsProtocol(Protocol):
+    # controller: ProjectsController
+    @property
+    def controller(self) -> ProjectsController:
+        ...
+
+    @property
+    def id(self) -> str:
+        ...
+
+    def _refresh_from(self, *, attrs: Dict[str, Any]) -> None:
+        ...
+
+    def modified_dict(self) -> Any:
+        ...
+
+
+class RowOperationsMixin(OperationsProtocol, Protocol):
+    def list_rows(
+        self,
+        *,
+        limit: Optional[int] = None,
+        filter: Optional[RowsFilter] = None,
+    ) -> "CaplenaIterator[Row]":
+        """Returns a list of all rows you have previously created for this project. The rows are returned in
+        sorted order, with the least recently added row appearing first.
+
+        :param limit: Number of results returned per page.
+        :param filter: Filters to apply to this request. If omitted, no filters are applied.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        return self.controller.list_rows(id=self.id, limit=limit, filter=filter)
+
+    def retrieve_row(self, *, id: str) -> "Row":
+        """Retrieves a previously created row for this project.
+
+        :param id: The row identifier.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        return self.controller.retrieve_row(p_id=self.id, r_id=id)
+
+    def append_row(self, *, columns: List[Dict[str, Any]]) -> "Row":
+        """Appends a single row to this project.
+
+        :param columns: The columns for the new row.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        return self.controller.append_row(id=self.id, columns=columns)
+
+    def append_rows(self, *, rows: List[Dict[str, Any]]) -> "RowsAppend":
+        """Appends multiple rows to this project. It is possible to append a
+        maximum of 20 rows in a single request.
+
+        :param rows: The rows to append to the specified project.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        return self.controller.append_rows(id=self.id, rows=rows)
+
+    def get_append_status(
+        self, *, task_id: Optional[Union[uuid.UUID, str]] = None
+    ) -> "RowsAppendStatus":
+        """Checks statuses of all upload tasks for requested project
+        or only requested upload task if its ID is provided
+
+        Note: We keep the status of upload tasks only for the 7 days. After that time task info won't be available.
+
+        :param project_id: The project identifier.
+        :param task_id: Task id which status will be checked
+        :raises caplena.api.ApiException: An API exception.
+        :raises ValueError: when task_id is not proper UUID or uuid in a string
+        """
+        return self.controller.get_append_status(project_id=self.id, task_id=task_id)
+
+
+class BaseProjectOperationsMixin(OperationsProtocol, Protocol):
+    def remove(self) -> None:
+        """Removes this project.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        self.controller.remove(id=self.id)
+
+    def refresh(self) -> None:
+        """Refreshes the properties of this project.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        project = self.controller.retrieve(id=self.id)
+        self._refresh_from(attrs=project._attrs)
+
+    def save(self) -> None:
+        """Saves the unpersisted properties of this project.
+
+        :raises caplena.api.ApiException: An API exception.
+        """
+        modified_dict = self.modified_dict()
+        if modified_dict != NOT_SET:
+            project = self.controller.update(id=self.id, **modified_dict)
+            self._refresh_from(attrs=project._attrs)
+
+
+class ProjectDetail(
+    BaseResource[ProjectsController], BaseProjectOperationsMixin, RowOperationsMixin
+):
     """The project detail resource."""
 
     class Column(BaseObject[ProjectsController]):
@@ -393,7 +532,6 @@ class ProjectDetail(BaseResource[ProjectsController]):
             return super().parse_obj(obj)
 
     class Auxiliary(Column):
-
         type: Literal["numerical", "boolean", "text", "date", "any"]
         """Type of this column."""
 
@@ -446,71 +584,6 @@ class ProjectDetail(BaseResource[ProjectsController]):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id={self.id}, name={self.name}, columns={self.columns.__repr__()})"
 
-    def remove(self) -> None:
-        """Removes this project.
-
-        :raises caplena.api.ApiException: An API exception.
-        """
-        self.controller.remove(id=self.id)
-
-    def append_row(self, *, columns: List[Dict[str, Any]]) -> "Row":
-        """Appends a single row to this project.
-
-        :param columns: The columns for the new row.
-        :raises caplena.api.ApiException: An API exception.
-        """
-        return self.controller.append_row(id=self.id, columns=columns)
-
-    def append_rows(self, *, rows: List[Dict[str, Any]]) -> "RowsAppend":
-        """Appends multiple rows to this project. It is possible to append a
-        maximum of 20 rows in a single request.
-
-        :param rows: The rows to append to the specified project.
-        :raises caplena.api.ApiException: An API exception.
-        """
-        return self.controller.append_rows(id=self.id, rows=rows)
-
-    def list_rows(
-        self,
-        *,
-        limit: Optional[int] = None,
-        filter: Optional[RowsFilter] = None,
-    ) -> "CaplenaIterator[Row]":
-        """Returns a list of all rows you have previously created for this project. The rows are returned in
-        sorted order, with the least recently added row appearing first.
-
-        :param limit: Number of results returned per page.
-        :param filter: Filters to apply to this request. If omitted, no filters are applied.
-        :raises caplena.api.ApiException: An API exception.
-        """
-        return self.controller.list_rows(id=self.id, limit=limit, filter=filter)
-
-    def retrieve_row(self, *, id: str) -> "Row":
-        """Retrieves a previously created row for this project.
-
-        :param id: The row identifier.
-        :raises caplena.api.ApiException: An API exception.
-        """
-        return self.controller.retrieve_row(p_id=self.id, r_id=id)
-
-    def refresh(self) -> None:
-        """Refreshes the properties of this project.
-
-        :raises caplena.api.ApiException: An API exception.
-        """
-        project = self.controller.retrieve(id=self.id)
-        self._refresh_from(attrs=project._attrs)
-
-    def save(self) -> None:
-        """Saves the unpersisted properties of this project.
-
-        :raises caplena.api.ApiException: An API exception.
-        """
-        modified_dict = self.modified_dict()
-        if modified_dict != NOT_SET:
-            project = self.controller.update(id=self.id, **modified_dict)
-            self._refresh_from(attrs=project._attrs)
-
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail":
         obj["columns"] = CaplenaList(
@@ -527,7 +600,9 @@ class ProjectDetail(BaseResource[ProjectsController]):
         return super().parse_obj(obj)
 
 
-class ListedProject(BaseResource[ProjectsController]):
+class ListedProject(
+    BaseResource[ProjectsController], BaseProjectOperationsMixin, RowOperationsMixin
+):
     """The project list resource."""
 
     __fields__ = {
@@ -573,71 +648,6 @@ class ListedProject(BaseResource[ProjectsController]):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id={self.id}, name={self.name})"
 
-    def remove(self) -> None:
-        """Removes this project.
-
-        :raises caplena.api.ApiException: An API exception.
-        """
-        self.controller.remove(id=self.id)
-
-    def append_row(self, *, columns: List[Dict[str, Any]]) -> "Row":
-        """Appends a single row to this project.
-
-        :param columns: The columns for the new row.
-        :raises caplena.api.ApiException: An API exception.
-        """
-        return self.controller.append_row(id=self.id, columns=columns)
-
-    def append_rows(self, *, rows: List[Dict[str, Any]]) -> "RowsAppend":
-        """Appends multiple rows to this project. It is possible to append a
-        maximum of 20 rows in a single request.
-
-        :param rows: The rows to append to the specified project.
-        :raises caplena.api.ApiException: An API exception.
-        """
-        return self.controller.append_rows(id=self.id, rows=rows)
-
-    def list_rows(
-        self,
-        *,
-        limit: Optional[int] = None,
-        filter: Optional[RowsFilter] = None,
-    ) -> "CaplenaIterator[Row]":
-        """Returns a list of all rows you have previously created for this project. The rows are returned in
-        sorted order, with the least recently added row appearing first.
-
-        :param limit: Number of results returned per page.
-        :param filter: Filters to apply to this request. If omitted, no filters are applied.
-        :raises caplena.api.ApiException: An API exception.
-        """
-        return self.controller.list_rows(id=self.id, limit=limit, filter=filter)
-
-    def retrieve_row(self, *, id: str) -> "Row":
-        """Retrieves a previously created row for this project.
-
-        :param id: The row identifier.
-        :raises caplena.api.ApiException: An API exception.
-        """
-        return self.controller.retrieve_row(p_id=self.id, r_id=id)
-
-    def refresh(self) -> None:
-        """Refreshes the properties of this project.
-
-        :raises caplena.api.ApiException: An API exception.
-        """
-        project = self.controller.retrieve(id=self.id)
-        self._refresh_from(attrs=project._attrs)
-
-    def save(self) -> None:
-        """Saves the unpersisted properties of this project.
-
-        :raises caplena.api.ApiException: An API exception.
-        """
-        modified_dict = self.modified_dict()
-        if modified_dict != NOT_SET:
-            project = self.controller.update(id=self.id, **modified_dict)
-            self._refresh_from(attrs=project._attrs)
-
     @classmethod
     def parse_obj(cls, obj: Dict[str, Any]) -> "ListedProject":
         obj["created"] = Helpers.from_rfc3339_datetime(obj["created"])
@@ -655,10 +665,13 @@ class RowsAppend(BaseObject[ProjectsController]):
         id: str
         """The identifier of the row that was appended."""
 
-    __fields__ = {"status", "queued_rows_count", "estimated_minutes", "results"}
+    __fields__ = {"status", "task_id", "queued_rows_count", "estimated_minutes", "results"}
 
     status: Literal["pending"]
     """Status of the bulk append operation."""
+
+    task_id: str
+    """Task ID of the bulk append operation."""
 
     queued_rows_count: int
     """Number of rows that were queued for appending."""
@@ -675,6 +688,32 @@ class RowsAppend(BaseObject[ProjectsController]):
             values=[cls.RowsAppendResult.parse_obj(res) for res in obj["results"]]
         )
         return super().parse_obj(obj)
+
+
+class RowsAppendStatus(BaseObject[ProjectsController]):
+    """Status of requested task and its subtasks"""
+
+    class MeerkatSubTaskStatus(BaseObject[ProjectsController]):
+        """Subtask and its sub-subtasks status"""
+
+        __fields__ = {"id", "status", "subtasks"}
+
+        id: uuid.UUID
+        """ID of the subtask"""
+
+        status: Optional[Literal["in_progress", "succeeded", "failed", "timed_out"]]
+        """Status of the subtask"""
+
+        subtasks: Optional[List[Self]]
+        """subtasks of the task"""
+
+    __fields__ = {"status", "tasks"}
+
+    status: Literal["in_progress", "succeeded", "failed", "timed_out"]
+    """Status of requested upload task"""
+
+    tasks: Optional[List[MeerkatSubTaskStatus]]
+    """tasks of the project"""
 
 
 class Row(BaseResource[ProjectsController]):

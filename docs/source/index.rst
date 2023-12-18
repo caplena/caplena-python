@@ -3,8 +3,8 @@
 Welcome to Caplena's Documentation
 ==================================
 
-This site covers Caplena's usage & API documentation. To learn more about what you 
-can use  Caplena for and how to create your own API key, please see 
+This site covers Caplena's usage & API documentation. To learn more about what you
+can use  Caplena for and how to create your own API key, please see
 `our main website <https://caplena.com>`_.
 
 Getting Started
