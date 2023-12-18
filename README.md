@@ -9,9 +9,9 @@ The Caplena Python library provides convenient access to the Caplena REST API fr
 
 To learn more about what you can use Caplena for and for how to create your own API key, please see [our main website](https://caplena.com/).
 
-To learn more about the REST API that constitutes the basis for this project, take a look at our [REST API docs](https://developers.caplena.com/).
+To learn more about the REST API that constitutes the basis for this project, take a look at our [REST API docs](https://caplena.com/docs/developers/).
 
-To view the Python API docs and refernces, head over to our [SDK documentation](https://developers.caplena.com/sdk/python/).
+To view the Python API docs and refernces, head over to our [SDK documentation](https://caplena.com/docs/sdk/python/).
 
 ## Installation
 
