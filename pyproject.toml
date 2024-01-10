@@ -62,7 +62,7 @@ Homepage = "https://caplena.com"
 "Source Code" = "https://github.com/caplena/caplena-python"
 "API Reference" = "https://developers.caplena.com/sdk/python"
 "Bug Tracker" = "https://github.com/caplena/caplena-python/issues"
-Documentation = "https://developers.caplena.com"
+Documentation = "https://caplena.com/docs/developers/"
 
 [tool.black]
 line-length = 100
