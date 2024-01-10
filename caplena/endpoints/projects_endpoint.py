@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Protocol, Union
 
 from cachetools.func import ttl_cache
-from typing_extensions import Literal, Self
+from typing_extensions import Literal
 
 from caplena.api import ApiOrdering
 from caplena.constants import LIST_PAGINATION_LIMIT, NOT_SET
@@ -691,28 +691,25 @@ class RowsAppend(BaseObject[ProjectsController]):
 
 
 class RowsAppendStatus(BaseObject[ProjectsController]):
-    """Status of requested task and its subtasks"""
+    """Status of requested task"""
 
-    class MeerkatSubTaskStatus(BaseObject[ProjectsController]):
-        """Subtask and its sub-subtasks status"""
+    class LongRunningTaskStatus(BaseObject[ProjectsController]):
+        """Task status"""
 
-        __fields__ = {"id", "status", "subtasks"}
+        __fields__ = {"id", "status"}
 
         id: uuid.UUID
-        """ID of the subtask"""
+        """ID of the task"""
 
-        status: Optional[Literal["in_progress", "succeeded", "failed", "timed_out"]]
-        """Status of the subtask"""
-
-        subtasks: Optional[List[Self]]
-        """subtasks of the task"""
+        status: Optional[Literal["in_progress", "succeeded", "failed"]]
+        """Status of the task"""
 
     __fields__ = {"status", "tasks"}
 
-    status: Literal["in_progress", "succeeded", "failed", "timed_out"]
+    status: Literal["in_progress", "succeeded", "failed"]
     """Status of requested upload task"""
 
-    tasks: Optional[List[MeerkatSubTaskStatus]]
+    tasks: Optional[List[LongRunningTaskStatus]]
     """tasks of the project"""
 
 
