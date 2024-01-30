@@ -22,8 +22,8 @@ sys.path.insert(0, os.path.abspath("../.."))
 project = "Caplena"
 copyright = "2023, Caplena"
 author = "Caplena"
-version = "1.3.0"
-release = "1.3.0"
+version = "2.3.0"
+release = "2.3.0"
 
 
 # -- General configuration ---------------------------------------------------
