@@ -20,9 +20,9 @@ class ApiException(Exception):
     :param context: Additional context that might be present depending on the error type and code.
     """
 
-    DEFAULT_MESSAGE: ClassVar[
-        str
-    ] = "An unknown error occurred. Please reach out to us at support@caplena.com."
+    DEFAULT_MESSAGE: ClassVar[str] = (
+        "An unknown error occurred. Please reach out to us at support@caplena.com."
+    )
 
     type: str
     """The type of the error returned."""

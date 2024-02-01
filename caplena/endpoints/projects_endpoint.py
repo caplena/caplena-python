@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Protocol, Union
 
 from cachetools.func import ttl_cache
-from typing_extensions import Literal, Self
+from typing_extensions import Literal
 
 from caplena.api import ApiOrdering
 from caplena.constants import LIST_PAGINATION_LIMIT, NOT_SET
@@ -290,18 +290,14 @@ class ProjectsController(BaseController):
 class OperationsProtocol(Protocol):
     # controller: ProjectsController
     @property
-    def controller(self) -> ProjectsController:
-        ...
+    def controller(self) -> ProjectsController: ...
 
     @property
-    def id(self) -> str:
-        ...
+    def id(self) -> str: ...
 
-    def _refresh_from(self, *, attrs: Dict[str, Any]) -> None:
-        ...
+    def _refresh_from(self, *, attrs: Dict[str, Any]) -> None: ...
 
-    def modified_dict(self) -> Any:
-        ...
+    def modified_dict(self) -> Any: ...
 
 
 class RowOperationsMixin(OperationsProtocol, Protocol):
@@ -588,9 +584,11 @@ class ProjectDetail(
     def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail":
         obj["columns"] = CaplenaList(
             values=[
-                cls.TextToAnalyze.parse_obj(column)
-                if column["type"] == "text_to_analyze"
-                else cls.Auxiliary.parse_obj(column)
+                (
+                    cls.TextToAnalyze.parse_obj(column)
+                    if column["type"] == "text_to_analyze"
+                    else cls.Auxiliary.parse_obj(column)
+                )
                 for column in obj["columns"]
             ]
         )
@@ -691,28 +689,25 @@ class RowsAppend(BaseObject[ProjectsController]):
 
 
 class RowsAppendStatus(BaseObject[ProjectsController]):
-    """Status of requested task and its subtasks"""
+    """Status of requested task"""
 
-    class MeerkatSubTaskStatus(BaseObject[ProjectsController]):
-        """Subtask and its sub-subtasks status"""
+    class LongRunningTaskStatus(BaseObject[ProjectsController]):
+        """Task status"""
 
-        __fields__ = {"id", "status", "subtasks"}
+        __fields__ = {"id", "status"}
 
         id: uuid.UUID
-        """ID of the subtask"""
+        """ID of the task"""
 
-        status: Optional[Literal["in_progress", "succeeded", "failed", "timed_out"]]
-        """Status of the subtask"""
-
-        subtasks: Optional[List[Self]]
-        """subtasks of the task"""
+        status: Optional[Literal["in_progress", "succeeded", "failed"]]
+        """Status of the task"""
 
     __fields__ = {"status", "tasks"}
 
-    status: Literal["in_progress", "succeeded", "failed", "timed_out"]
+    status: Literal["in_progress", "succeeded", "failed"]
     """Status of requested upload task"""
 
-    tasks: Optional[List[MeerkatSubTaskStatus]]
+    tasks: Optional[List[LongRunningTaskStatus]]
     """tasks of the project"""
 
 

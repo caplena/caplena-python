@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "caplena"
-version = "1.3.0"
+version = "2.0.0"
 authors = [{name = "Caplena", email = "support@caplena.com"}]
 maintainers = [{name = "Pascal de Buren", email = "pascal@caplena.com"}]
 keywords = ["caplena", "api", "nlp", "customer feedback"]
@@ -62,7 +62,7 @@ Homepage = "https://caplena.com"
 "Source Code" = "https://github.com/caplena/caplena-python"
 "API Reference" = "https://developers.caplena.com/sdk/python"
 "Bug Tracker" = "https://github.com/caplena/caplena-python/issues"
-Documentation = "https://developers.caplena.com"
+Documentation = "https://caplena.com/docs/developers/"
 
 [tool.black]
 line-length = 100
