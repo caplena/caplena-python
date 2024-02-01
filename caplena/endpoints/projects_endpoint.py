@@ -290,18 +290,14 @@ class ProjectsController(BaseController):
 class OperationsProtocol(Protocol):
     # controller: ProjectsController
     @property
-    def controller(self) -> ProjectsController:
-        ...
+    def controller(self) -> ProjectsController: ...
 
     @property
-    def id(self) -> str:
-        ...
+    def id(self) -> str: ...
 
-    def _refresh_from(self, *, attrs: Dict[str, Any]) -> None:
-        ...
+    def _refresh_from(self, *, attrs: Dict[str, Any]) -> None: ...
 
-    def modified_dict(self) -> Any:
-        ...
+    def modified_dict(self) -> Any: ...
 
 
 class RowOperationsMixin(OperationsProtocol, Protocol):
@@ -588,9 +584,11 @@ class ProjectDetail(
     def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail":
         obj["columns"] = CaplenaList(
             values=[
-                cls.TextToAnalyze.parse_obj(column)
-                if column["type"] == "text_to_analyze"
-                else cls.Auxiliary.parse_obj(column)
+                (
+                    cls.TextToAnalyze.parse_obj(column)
+                    if column["type"] == "text_to_analyze"
+                    else cls.Auxiliary.parse_obj(column)
+                )
                 for column in obj["columns"]
             ]
         )
