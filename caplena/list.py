@@ -60,19 +60,23 @@ class CaplenaList(MutableSequence[T]):
         return self._values == other._values  # pyright: reportUnknownMemberType=false
 
     @overload
-    def __getitem__(self, index: int) -> T: ...
+    def __getitem__(self, index: int) -> T:
+        ...
 
     @overload
-    def __getitem__(self, index: slice) -> MutableSequence[T]: ...
+    def __getitem__(self, index: slice) -> MutableSequence[T]:
+        ...
 
     def __getitem__(self, index: Union[int, slice]) -> Union[T, MutableSequence[T]]:
         return self._values[index]
 
     @overload
-    def __setitem__(self, index: int, value: T) -> None: ...
+    def __setitem__(self, index: int, value: T) -> None:
+        ...
 
     @overload
-    def __setitem__(self, index: slice, value: Iterable[T]) -> None: ...
+    def __setitem__(self, index: slice, value: Iterable[T]) -> None:
+        ...
 
     def __setitem__(self, index: Union[int, slice], value: Union[T, Iterable[T]]) -> None:
         if isinstance(index, slice):
@@ -87,10 +91,12 @@ class CaplenaList(MutableSequence[T]):
         self._values[index] = value  # type: ignore
 
     @overload
-    def __delitem__(self, index: int) -> None: ...
+    def __delitem__(self, index: int) -> None:
+        ...
 
     @overload
-    def __delitem__(self, index: slice) -> None: ...
+    def __delitem__(self, index: slice) -> None:
+        ...
 
     def __delitem__(self, index: Union[int, slice]) -> None:
         if self._can_remove is False:
