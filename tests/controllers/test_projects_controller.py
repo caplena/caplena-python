@@ -433,6 +433,7 @@ class ProjectsControllerTests(unittest.TestCase):
         retrieved = self.controller.retrieve_row(p_id=project.id, r_id=row.id)
 
         self.assertDictEqual(row.dict(), retrieved.dict())
+        self.assertDictEqual(row._metadata, {"project": project.id})
 
     def test_removing_a_row_succeeds(self) -> None:
         project = self.create_project()
