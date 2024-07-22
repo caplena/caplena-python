@@ -17,25 +17,43 @@ Next, we'll build the project's columns which defines the schema of the rows to 
 
 .. code-block:: python
 
-  columns = [
-    {
-        "name": "Survey Response ID", # name is what is shown in the User Interface
-        "ref": "id", # ref is a unique identifier for the column in the project
-        "type": "numerical"
-    },
-    {
-        "name": "Why did you give this rating?",
-        "ref": "nps_why",
-        "type": "text_to_analyze",
-        "description": "Please explain the rating in a few sentences."
-    }
+  from caplena.models.projects import (
+      NonTTAColumnDefinition,
+      NonTTAColumnType,
+      TTAColumnDefinition,
+      TTAColumnType,
+   )
+
+  columns=[
+      NonTTAColumnDefinition(
+          ref="id",  # ref is a unique identifier for the column in the project
+          name="Survey Response ID", # name is what is shown in the User Interface
+          type=NonTTAColumnType.numerical,
+      ),
+      TTAColumnDefinition(
+          ref="nps_why",
+          name="Why did you give this rating?",
+          type=TTAColumnType.text_to_analyze,
+          description="Please explain the rating in a few sentences.",
+          topics=[],
+      ),
   ]
+
 
 Now we're ready to create the project:
 
 .. code-block:: python
 
-  new_project = client.projects.create(name="NPS Study", language='en', columns=columns, tags=["NPS"])
+  from caplena.models.projects import ProjectLanguage, ProjectSettings
+
+  project_settings = ProjectSettings(
+      name="NPS Study",
+      language=ProjectLanguage.EN,
+      columns=columns,
+      tags=["NPS"],
+  ).model_dump(exclude_none=True)
+
+  new_project = client.projects.create(**project_settings)
 
 Optionally, we can pass :code:`translation_engine=google_translate` to translate rows automatically using Google Translate.
 
@@ -53,11 +71,25 @@ The ordering of columns within a row does not matter as columns are referenced u
 
 .. code-block:: python
 
+  from caplena.models.projects import (
+     MultipleRowPayload,
+     RowPayload,
+     NonTTACell,
+     TTACell,
+   )
+
   # generate fake rows
-  rows = [
-    {"columns": [{"ref": "id", "value": i}, {"ref":"nps_why", "value": f"Row {i}"}]}
-     for i in range(100)
-  ]
+  rows = MultipleRowPayload(
+      rows=[
+          RowPayload(
+              columns=[
+                  NonTTACell(ref="id", value=i),
+                  TTACell(ref="nps_why", value=f"Row {i}", topics=[]),
+              ]
+          ) for i in range(100)
+      ]
+  ).model_dump()["rows"]
+
   # batch rows, we'll use numpy for this
   import numpy as np
   n_batches = np.ceil(len(rows)/20) # compute the number of batches needed

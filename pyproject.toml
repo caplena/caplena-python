@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "caplena"
-version = "2.0.1"
+version = "2.1.0"
 authors = [{name = "Caplena", email = "support@caplena.com"}]
 maintainers = [{name = "Pascal de Buren", email = "pascal@caplena.com"}]
 keywords = ["caplena", "api", "nlp", "customer feedback"]
@@ -33,6 +33,7 @@ dependencies = [
     "typing-extensions >=4.0.0",
     "backoff >=2.2.0",
     "cachetools>=5.0.0",
+    "pydantic>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -42,6 +43,9 @@ test = [
     "requests-mock",
     "types-cachetools",
     "types-six",
+    "types-Pygments",
+    "types-colorama",
+    "types-setuptools",
 ]
 doc = [
     "sphinx",
