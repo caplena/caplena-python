@@ -106,7 +106,7 @@ class TTACell(pydantic.BaseModel):
     ref: str
     topics: List[Topic]
     value: str
-    was_reviewed: bool = True
+    was_reviewed: bool = False
 
     @pydantic.validator("topics")
     def topics_shouldnt_have_duplicates(cls, topics: List[Topic]) -> List[Topic]:
