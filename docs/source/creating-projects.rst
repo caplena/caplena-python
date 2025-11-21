@@ -99,6 +99,14 @@ The ordering of columns within a row does not matter as columns are referenced u
   for row_batch in row_batches:
       new_rows.append(new_project.append_rows(rows=list(row_batch))) # need to cast to list from ndarray
 
+.. note::
+    The ``TTACell`` class defines the ``was_reviewed`` attribute.
+    By default it is ``False``, which indicates that the automatic topic assigment should be run for this particular cell.
+    To disable the automatic topic assignment, set ``was_reviewed=True``.
+
+.. warning::
+    The default for ``TTACell`` was changed in v2.1.2 from ``True`` to ``False``.
+
 
 This process takes a while, to monitor the status you can use `task_id` property from the `RowsAppend` response and call `get_append_status`.
 
