@@ -8,7 +8,8 @@ T = TypeVar("T")
 U = TypeVar("U", bound="ApiFilter")
 
 ZeroOrMany = Optional[Union[T, List[T]]]
-Constraints = Dict[str, List[Dict[str, List[Any]]]]
+FilterClause = Dict[str, Union[List[Any], bool]]
+Constraints = Dict[str, List[FilterClause]]
 INVERTED_CLAUSE_KEY = "__inverted__"
 
 
@@ -34,7 +35,7 @@ class ApiFilter:
                 stringified_literals: List[str] = []
                 is_inverted = clause.get(INVERTED_CLAUSE_KEY, self._is_inverted)
                 for modifier, values in clause.items():
-                    if modifier == INVERTED_CLAUSE_KEY:
+                    if modifier == INVERTED_CLAUSE_KEY or not isinstance(values, list):
                         continue
                     for value in values:
                         str_value = Helpers.build_escaped_filter_str(self.to_string(value=value))
@@ -60,7 +61,7 @@ class ApiFilter:
                 stringified_literals: List[str] = []
                 is_inverted = clause.get(INVERTED_CLAUSE_KEY, self._is_inverted)
                 for modifier, values in clause.items():
-                    if modifier == INVERTED_CLAUSE_KEY:
+                    if modifier == INVERTED_CLAUSE_KEY or not isinstance(values, list):
                         continue
                     filt_name = f"{name}"
                     if modifier != self.DEFAULT:
@@ -167,10 +168,14 @@ class ApiFilter:
             elif len(new_filters) == 1 and len(other_filters) == 1:
                 name = new_filters[0]
                 for filt_name, values in other_constraints[name][0].items():
-                    if filt_name == INVERTED_CLAUSE_KEY:
+                    if filt_name == INVERTED_CLAUSE_KEY or not isinstance(values, list):
                         continue
-                    new_constraints[name][0].setdefault(filt_name, [])
-                    new_constraints[name][0][filt_name].extend(values)
+                    clause_dict = new_constraints[name][0]
+                    current = clause_dict.get(filt_name)
+                    if not isinstance(current, list):
+                        current = []
+                        clause_dict[filt_name] = current
+                    current.extend(values)
                 if is_inverted:
                     new_constraints[name][0][INVERTED_CLAUSE_KEY] = True
 
@@ -184,11 +189,11 @@ class ApiFilter:
     def construct(cls: Type[U], *, name: str, filters: Dict[str, ZeroOrMany[Any]]) -> U:
         constraints: Constraints = {}
 
-        clauses: List[Dict[str, List[Any]]] = []
+        clauses: List[FilterClause] = []
         for filter_name, values in filters.items():
             values_list = cls.to_list(values=values)
             if values_list is not None:
-                clause: Dict[str, List[Any]] = {}
+                clause: FilterClause = {}
                 clause[filter_name] = values_list
                 clauses.append(clause)
 
