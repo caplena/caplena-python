@@ -80,7 +80,7 @@ class Helpers:
     @staticmethod
     def build_escaped_filter_str(value: str) -> str:
         escaped = value.replace("\\", "\\\\")
-        return re.sub(r"(:|,|;)", r"\\\1", escaped)
+        return re.sub(r"(:|,|;|!)", r"\\\1", escaped)
 
     @staticmethod
     def build_dict(**kwargs: Any) -> Dict[str, Any]:

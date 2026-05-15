@@ -76,6 +76,36 @@ Projects last modified after given date matching a tag
 
   client.projects.list(filter=P.last_modified(gte="2022-01-01T00:00:00") & P.tags("NPS"))
 
+Inverted filters
+---------------
+
+Individual filter constraints can be **inverted** so that matching resources are those
+that do **not** satisfy the constraint. Prefix a filter expression with :code:`~`:
+
+.. code-block:: python
+
+  # Projects that are NOT tagged with "archived"
+  projects = client.projects.list(filter=~P.tags("archived"))
+
+  # Projects whose name does NOT contain "draft"
+  projects = client.projects.list(filter=~P.name(contains__i="draft"))
+
+Inverted filters combine with :code:`&` and :code:`|` like any other filter.
+
+Under the hood, the client encodes an inverted constraint with :code:`!` instead of
+:code:`:` as the separator between modifier and value (for example, :code:`tags=!archived`).
+See `Filtering <https://caplena.com/docs/developers/c4e34366a7243-filtering#inverted-filters>`_
+in the API documentation for the full query-string syntax.
+
+Filter value escaping
+---------------------
+
+When serializing :code:`ProjectsFilter` and :code:`RowsFilter` to query parameters, the
+client escapes special characters in filter values so they are not interpreted as syntax:
+backslash (:code:`\\`), comma (:code:`,`), semicolon (:code:`;`), colon (:code:`:`), and
+exclamation mark (:code:`!`). You do not need to escape these manually when using the
+filter helpers.
+
 
 Retrieving topics
 ---------------

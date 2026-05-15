@@ -9,6 +9,7 @@ U = TypeVar("U", bound="ApiFilter")
 
 ZeroOrMany = Optional[Union[T, List[T]]]
 Constraints = Dict[str, List[Dict[str, List[Any]]]]
+INVERTED_CLAUSE_KEY = "__inverted__"
 
 
 class ApiFilter:
@@ -18,10 +19,12 @@ class ApiFilter:
         self,
         constraints: Optional[Constraints] = None,
         has_conjunction: bool = False,
+        is_inverted: bool = False,
     ):
         # TODO: how to restrict AND, OR, NONE operations
         self._constraints: Constraints = constraints if constraints is not None else {}
         self._has_conjunction = has_conjunction
+        self._is_inverted = is_inverted
 
     def to_query_params(self) -> Dict[str, str]:
         query_params: Dict[str, str] = {}
@@ -29,11 +32,17 @@ class ApiFilter:
             stringified_clauses: List[str] = []
             for clause in clauses:
                 stringified_literals: List[str] = []
+                is_inverted = clause.get(INVERTED_CLAUSE_KEY, self._is_inverted)
                 for modifier, values in clause.items():
+                    if modifier == INVERTED_CLAUSE_KEY:
+                        continue
                     for value in values:
                         str_value = Helpers.build_escaped_filter_str(self.to_string(value=value))
+                        equals = "!" if is_inverted else ":"
                         if modifier != self.DEFAULT:
-                            str_value = f"{modifier}:" + str_value
+                            str_value = f"{modifier}{equals}{str_value}"
+                        elif is_inverted:
+                            str_value = f"!{str_value}"
                         stringified_literals.append(str_value)
                 stringified_clauses.append(",".join(stringified_literals))
             query_params[query_param] = ";".join(stringified_clauses)
@@ -45,6 +54,8 @@ class ApiFilter:
             for clause in clauses:
                 stringified_literals: List[str] = []
                 for modifier, values in clause.items():
+                    if modifier == INVERTED_CLAUSE_KEY:
+                        continue
                     filt_name = f"{name}"
                     if modifier != self.DEFAULT:
                         filt_name += f".{modifier}"
@@ -52,6 +63,14 @@ class ApiFilter:
                     stringified_literals.append(f"{filt_name}={{{str_values}}}")
                 stringified_clauses.append("(" + " | ".join(stringified_literals) + ")")
         return "ApiFilter(" + " & ".join(stringified_clauses) + ")"
+
+    def __invert__(self: U) -> U:
+        """Return a filter that matches resources not satisfying this filter."""
+        return type(self)(
+            constraints=copy.deepcopy(self._constraints),
+            has_conjunction=self._has_conjunction,
+            is_inverted=not self._is_inverted,
+        )
 
     def __and__(self: U, other: U) -> U:
         """Creates and returns the immutable conjunction of two separate filters. The original
@@ -71,12 +90,22 @@ class ApiFilter:
         has_conjunction = other._has_conjunction if other._has_conjunction else has_conjunction
 
         for name, clauses in other_constraints.items():
+            clauses_to_add = []
+            for clause in clauses:
+                clause_copy = copy.deepcopy(clause)
+                if other._is_inverted:
+                    clause_copy[INVERTED_CLAUSE_KEY] = True
+                clauses_to_add.append(clause_copy)
             if name in new_constraints:
-                new_constraints[name].extend(clauses)
+                new_constraints[name].extend(clauses_to_add)
             else:
-                new_constraints[name] = clauses
+                new_constraints[name] = clauses_to_add
 
-        return type(self)(constraints=new_constraints, has_conjunction=has_conjunction)
+        return type(self)(
+            constraints=new_constraints,
+            has_conjunction=has_conjunction,
+            is_inverted=self._is_inverted,
+        )
 
     def __or__(self: U, other: U) -> U:
         """Creates and returns the immutable disjunction of two separate filters. The original
@@ -88,17 +117,26 @@ class ApiFilter:
         :type other: Filter
         :rtype: Filter
         """
+        if self._is_inverted != other._is_inverted:
+            raise ValueError(
+                "Cannot combine inverted and non-inverted filters with OR. "
+                "Use AND (&) instead, or invert the entire expression."
+            )
+
         new_constraints = copy.deepcopy(self._constraints)
         other_constraints = copy.deepcopy(other._constraints)
         new_filters = list(new_constraints.keys())
         other_filters = list(other_constraints.keys())
 
+        is_inverted = self._is_inverted
+
         has_conjunction = False
         if len(new_filters) == 0:
             has_conjunction = other._has_conjunction
             new_constraints = other_constraints
+            is_inverted = other._is_inverted
         elif len(other_filters) == 0:
-            has_conjunction = other._has_conjunction
+            has_conjunction = self._has_conjunction
         elif self._has_conjunction or other._has_conjunction:
             raise ValueError(
                 "Cannot build the disjunction of already conjuncted filters To fix this error, please make sure "
@@ -119,10 +157,18 @@ class ApiFilter:
             elif len(new_filters) == 1 and len(other_filters) == 1:
                 name = new_filters[0]
                 for filt_name, values in other_constraints[name][0].items():
+                    if filt_name == INVERTED_CLAUSE_KEY:
+                        continue
                     new_constraints[name][0].setdefault(filt_name, [])
                     new_constraints[name][0][filt_name].extend(values)
+                if is_inverted:
+                    new_constraints[name][0][INVERTED_CLAUSE_KEY] = True
 
-        return type(self)(constraints=new_constraints, has_conjunction=has_conjunction)
+        return type(self)(
+            constraints=new_constraints,
+            has_conjunction=has_conjunction,
+            is_inverted=is_inverted,
+        )
 
     @classmethod
     def construct(cls: Type[U], *, name: str, filters: Dict[str, ZeroOrMany[Any]]) -> U:

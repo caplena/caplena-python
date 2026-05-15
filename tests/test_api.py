@@ -343,3 +343,26 @@ class ApiFilterQueryParamTests(unittest.TestCase):
         }
 
         self.assertEqual(expected, filt.to_query_params())
+
+    def test_inverted_filter_succeeds(self) -> None:
+        self.assertEqual({"tags": "!archived"}, (~Pf.tags("archived")).to_query_params())
+        self.assertEqual(
+            {"tags": "active;!archived"},
+            (Pf.tags("active") & ~Pf.tags("archived")).to_query_params(),
+        )
+        self.assertEqual(
+            {"created": "year!2020"},
+            (~Pf.created(year=2020)).to_query_params(),
+        )
+        self.assertEqual(
+            {"tags": "!a,!b"},
+            (~Pf.tags("a") | ~Pf.tags("b")).to_query_params(),
+        )
+        self.assertEqual(
+            Pf.tags("archived").to_query_params(),
+            (~(~Pf.tags("archived"))).to_query_params(),
+        )
+
+    def test_inverted_or_filter_fails(self) -> None:
+        with self.assertRaisesRegex(ValueError, "inverted and non-inverted filters with OR"):
+            ~Pf.tags("a") | Pf.tags("b")
