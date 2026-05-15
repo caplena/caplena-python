@@ -48,11 +48,17 @@ class ApiFilter:
             query_params[query_param] = ";".join(stringified_clauses)
         return query_params
 
+    def _mark_inverted_clauses(self, constraints: Constraints) -> None:
+        for clauses in constraints.values():
+            for clause in clauses:
+                clause[INVERTED_CLAUSE_KEY] = True
+
     def __str__(self) -> str:
         stringified_clauses: List[str] = []
         for name, clauses in self._constraints.items():
             for clause in clauses:
                 stringified_literals: List[str] = []
+                is_inverted = clause.get(INVERTED_CLAUSE_KEY, self._is_inverted)
                 for modifier, values in clause.items():
                     if modifier == INVERTED_CLAUSE_KEY:
                         continue
@@ -60,7 +66,8 @@ class ApiFilter:
                     if modifier != self.DEFAULT:
                         filt_name += f".{modifier}"
                     str_values = ",".join([str(value) for value in values])
-                    stringified_literals.append(f"{filt_name}={{{str_values}}}")
+                    equals = "!" if is_inverted else "="
+                    stringified_literals.append(f"{filt_name}{equals}{{{str_values}}}")
                 stringified_clauses.append("(" + " | ".join(stringified_literals) + ")")
         return "ApiFilter(" + " & ".join(stringified_clauses) + ")"
 
@@ -85,6 +92,9 @@ class ApiFilter:
         new_constraints = copy.deepcopy(self._constraints)
         other_constraints = copy.deepcopy(other._constraints)
 
+        if self._is_inverted:
+            self._mark_inverted_clauses(new_constraints)
+
         has_conjunction = len(new_constraints.keys()) > 0 and len(other_constraints.keys()) > 0
         has_conjunction = self._has_conjunction if self._has_conjunction else has_conjunction
         has_conjunction = other._has_conjunction if other._has_conjunction else has_conjunction
@@ -104,7 +114,7 @@ class ApiFilter:
         return type(self)(
             constraints=new_constraints,
             has_conjunction=has_conjunction,
-            is_inverted=self._is_inverted,
+            is_inverted=False,
         )
 
     def __or__(self: U, other: U) -> U:

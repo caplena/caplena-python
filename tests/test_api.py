@@ -351,6 +351,14 @@ class ApiFilterQueryParamTests(unittest.TestCase):
             (Pf.tags("active") & ~Pf.tags("archived")).to_query_params(),
         )
         self.assertEqual(
+            {"tags": "!a;b"},
+            (~Pf.tags("a") & Pf.tags("b")).to_query_params(),
+        )
+        self.assertEqual(
+            {"tags": "!a", "created": "year:2020"},
+            (~Pf.tags("a") & Pf.created(year=2020)).to_query_params(),
+        )
+        self.assertEqual(
             {"created": "year!2020"},
             (~Pf.created(year=2020)).to_query_params(),
         )

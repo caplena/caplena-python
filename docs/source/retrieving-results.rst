@@ -77,7 +77,7 @@ Projects last modified after given date matching a tag
   client.projects.list(filter=P.last_modified(gte="2022-01-01T00:00:00") & P.tags("NPS"))
 
 Inverted filters
----------------
+----------------
 
 Individual filter constraints can be **inverted** so that matching resources are those
 that do **not** satisfy the constraint. Prefix a filter expression with :code:`~`:
