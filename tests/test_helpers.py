@@ -74,11 +74,13 @@ class HelperTests(unittest.TestCase):
             "abc cdef \\ \n ghj xyz",
             "th:is;is;just,a,ve:ry;lo:ng;tag",
             "just\\some\\\nmany\\\\\\backslashes\\n",
+            "not!inverted",
         ]
         escaped = [
             "abc cdef \\\\ \n ghj xyz",
             "th\\:is\\;is\\;just\\,a\\,ve\\:ry\\;lo\\:ng\\;tag",
             "just\\\\some\\\\\nmany\\\\\\\\\\\\backslashes\\\\n",
+            "not\\!inverted",
         ]
 
         self.assertListEqual(escaped, [Helpers.build_escaped_filter_str(un) for un in unescaped])
