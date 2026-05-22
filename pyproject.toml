@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "caplena"
-version = "2.0.0"
+version = "2.1.3"
 authors = [{name = "Caplena", email = "support@caplena.com"}]
 maintainers = [{name = "Pascal de Buren", email = "pascal@caplena.com"}]
 keywords = ["caplena", "api", "nlp", "customer feedback"]
@@ -33,6 +33,7 @@ dependencies = [
     "typing-extensions >=4.0.0",
     "backoff >=2.2.0",
     "cachetools>=5.0.0",
+    "pydantic>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -42,6 +43,9 @@ test = [
     "requests-mock",
     "types-cachetools",
     "types-six",
+    "types-Pygments",
+    "types-colorama",
+    "types-setuptools",
 ]
 doc = [
     "sphinx",
@@ -58,11 +62,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://caplena.com"
+"Homepage" = "https://caplena.com"
 "Source Code" = "https://github.com/caplena/caplena-python"
-"API Reference" = "https://developers.caplena.com/sdk/python"
+"API Reference" = "https://caplena.com/docs/developers/"
 "Bug Tracker" = "https://github.com/caplena/caplena-python/issues"
-Documentation = "https://caplena.com/docs/developers/"
+"Documentation" = "https://caplena.com/docs/sdk/python/"
 
 [tool.black]
 line-length = 100

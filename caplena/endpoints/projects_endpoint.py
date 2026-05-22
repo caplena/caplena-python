@@ -251,7 +251,7 @@ class ProjectsController(BaseController):
             path="/projects/{p_id}/rows/{r_id}",
             path_params={"p_id": p_id, "r_id": r_id},
         )
-        return self.build_response(response, resource=Row, metadata={"project": id})
+        return self.build_response(response, resource=Row, metadata={"project": p_id})
 
     def remove_row(self, *, p_id: str, r_id: str) -> None:
         """Removes a previously created row.
@@ -281,7 +281,7 @@ class ProjectsController(BaseController):
         response = self.patch(
             path="/projects/{p_id}/rows/{r_id}", path_params={"p_id": p_id, "r_id": r_id}, json=json
         )
-        return self.build_response(response, resource=Row, metadata={"project": id})
+        return self.build_response(response, resource=Row, metadata={"project": p_id})
 
 
 # --- Resources & Objects--- #
