@@ -124,10 +124,6 @@ class NonTTACell(pydantic.BaseModel):
 Cell = Union[TTACell, NonTTACell]
 
 
-class MultipleCellPayload(pydantic.BaseModel):
-    cells: List[Cell]
-
-
 class RowPayload(pydantic.BaseModel):
     columns: List[Cell]
 

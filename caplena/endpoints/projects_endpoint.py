@@ -188,27 +188,6 @@ class ProjectsController(BaseController):
         )
         return self.build_response(response, resource=RowsAppendStatus)
 
-    def append_row(
-        self,
-        *,
-        id: str,
-        columns: List[Dict[str, Any]],
-    ) -> "Row":
-        """Appends a single row to a previously created project.
-
-        :param id: The project identifier.
-        :param columns: The columns for the new row.
-        :raises caplena.api.ApiException: An API exception.
-        """
-        json = self.api.build_payload(columns=columns)
-        response = self.post(
-            path="/projects/{id}/rows",
-            path_params={"id": id},
-            json=json,
-        )
-
-        return self.build_response(response, resource=Row, metadata={"project": id})
-
     def list_rows(
         self,
         *,
@@ -323,14 +302,6 @@ class RowOperationsMixin(OperationsProtocol, Protocol):
         :raises caplena.api.ApiException: An API exception.
         """
         return self.controller.retrieve_row(p_id=self.id, r_id=id)
-
-    def append_row(self, *, columns: List[Dict[str, Any]]) -> "Row":
-        """Appends a single row to this project.
-
-        :param columns: The columns for the new row.
-        :raises caplena.api.ApiException: An API exception.
-        """
-        return self.controller.append_row(id=self.id, columns=columns)
 
     def append_rows(self, *, rows: List[Dict[str, Any]]) -> "RowsAppend":
         """Appends multiple rows to this project. It is possible to append a
