@@ -10,9 +10,9 @@ from typing_extensions import Protocol
 
 from caplena.api.api_exception import ApiException
 from caplena.controllers import ProjectsController
+from caplena.endpoints.projects_endpoint import TTL_STATUS_CACHE_EXPIRE
 from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
 from caplena.models.projects import (
-    MultipleCellPayload,
     MultipleRowPayload,
     NonTTACell,
     NonTTAColumnDefinition,
@@ -184,34 +184,6 @@ def project_rows_create_payload_model() -> List[Dict[str, Any]]:
     ).model_dump()["rows"]
 
 
-def project_row_cells_payload() -> List[Dict[str, Any]]:
-    return [
-        {"ref": "customer_age", "value": None},
-        {"ref": "our_strengths", "value": "Good price."},
-        {"ref": "boolean_col", "value": False},
-        {"ref": "text_col", "value": None},
-        {
-            "ref": "date_col",
-            "value": datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
-        },
-    ]
-
-
-def project_row_cells_payload_model() -> List[Dict[str, Any]]:
-    return MultipleCellPayload(  # type: ignore[no-any-return]
-        cells=[
-            NonTTACell(ref="customer_age", value=None),
-            TTACell(ref="our_strengths", value="Good price.", topics=[], was_reviewed=False),
-            NonTTACell(ref="boolean_col", value=False),
-            NonTTACell(ref="text_col", value=None),
-            NonTTACell(
-                ref="date_col",
-                value=datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
-            ),
-        ]
-    ).model_dump()["cells"]
-
-
 @pytest.fixture(scope="session")
 def controller() -> ProjectsController:
     controller = ProjectsController(config=common_config)
@@ -240,6 +212,32 @@ def create_project(
             controller.remove(id=project_id)
         except ApiException:
             print("Could not remove project with id:", project_id)
+
+
+def wait_until_append_succeeds(
+    controller: ProjectsController, *, project_id: str, task_id: str, timeout_s: float = 180
+) -> None:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        status = controller.get_append_status(project_id=project_id, task_id=task_id)
+        if status.status == "succeeded":
+            return
+        if status.status == "failed":
+            raise AssertionError(f"Append task {task_id} failed")
+        # Status responses are TTL-cached for TTL_STATUS_CACHE_EXPIRE seconds.
+        time.sleep(TTL_STATUS_CACHE_EXPIRE + 1)
+    raise TimeoutError(f"Append task {task_id} did not succeed within {timeout_s}s")
+
+
+def append_rows_and_retrieve(
+    controller: ProjectsController,
+    *,
+    project_id: str,
+    rows: List[Dict[str, Any]],
+) -> List[Row]:
+    response = controller.append_rows(id=project_id, rows=rows)
+    wait_until_append_succeeds(controller, project_id=project_id, task_id=response.task_id)
+    return [controller.retrieve_row(p_id=project_id, r_id=result.id) for result in response.results]
 
 
 def test_creating_a_project_succeeds(create_project: CreateProjectFunctionType) -> None:
@@ -557,89 +555,39 @@ def test_getting_status_of_multiple_rows_upload_task(
         assert task_data.status in ["in_progress", "succeeded"]
 
 
-@pytest.mark.parametrize(
-    "payload", [project_row_cells_payload(), project_row_cells_payload_model()]
-)
-def test_appending_single_row_succeeds(
-    controller: ProjectsController,
-    create_project: CreateProjectFunctionType,
-    payload: List[Dict[str, Any]],
-) -> None:
-    project = create_project()
-    row = controller.append_row(id=project.id, columns=payload)
-
-    assert isinstance(row.id, str)
-    assert isinstance(row.created, datetime)
-    assert isinstance(row.last_modified, datetime)
-
-    assert 5 == len(row.columns)
-    assert isinstance(row.columns[0], Row.TextToAnalyzeColumn)
-    assert isinstance(row.columns[1], Row.NumericalColumn)
-    our_strengths = cast(Row.TextToAnalyzeColumn, row.columns[0])  # type: ignore
-    customer_age = cast(Row.NumericalColumn, row.columns[1])  # type: ignore
-    boolean_col = cast(Row.BooleanColumn, row.columns[2])
-    text_col = cast(Row.TextColumn, row.columns[3])
-    date_col = cast(Row.DateColumn, row.columns[4])
-
-    assert "our_strengths" == our_strengths.ref
-    assert "text_to_analyze" == our_strengths.type
-    assert "Good price." == our_strengths.value
-    assert our_strengths.was_reviewed is False
-    assert our_strengths.source_language is None
-    assert our_strengths.translated_value is None
-    assert 1 == len(our_strengths.topics)
-    topic = our_strengths.topics[0]
-    assert re.search(r"^cd_", topic.id)
-    assert topic.label == "price"
-    assert topic.category == "SERVICE"
-    assert topic.code == 1
-    assert topic.sentiment_label == ""
-    assert topic.sentiment == "positive"
-
-    assert "customer_age" == customer_age.ref
-    assert "numerical" == customer_age.type
-    assert customer_age.value is None
-
-    assert "boolean_col" == boolean_col.ref
-    assert "boolean" == boolean_col.type
-    assert boolean_col.value is False
-
-    assert "text_col" == text_col.ref
-    assert "text" == text_col.type
-    assert "" == text_col.value
-
-    assert "date_col" == date_col.ref
-    assert "date" == date_col.type
-    assert datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc) == date_col.value
-
-
 def test_listing_all_rows_succeeds(
     controller: ProjectsController, create_project: CreateProjectFunctionType
 ) -> None:
     project = create_project()
-    row1 = controller.append_row(
-        id=project.id,
-        columns=[
-            {"ref": "customer_age", "value": None},
-            {"ref": "our_strengths", "value": "Some other text."},
-            {"ref": "boolean_col", "value": False},
-            {"ref": "text_col", "value": "iphone"},
+    row1, row2 = append_rows_and_retrieve(
+        controller,
+        project_id=project.id,
+        rows=[
             {
-                "ref": "date_col",
-                "value": datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
+                "columns": [
+                    {"ref": "customer_age", "value": None},
+                    {"ref": "our_strengths", "value": "Some other text."},
+                    {"ref": "boolean_col", "value": False},
+                    {"ref": "text_col", "value": "iphone"},
+                    {
+                        "ref": "date_col",
+                        "value": datetime(
+                            year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc
+                        ),
+                    },
+                ]
             },
-        ],
-    )
-    row2 = controller.append_row(
-        id=project.id,
-        columns=[
-            {"ref": "customer_age", "value": 12},
-            {"ref": "our_strengths", "value": "This is my review. Very nice."},
-            {"ref": "boolean_col", "value": True},
-            {"ref": "text_col", "value": "samsung"},
             {
-                "ref": "date_col",
-                "value": datetime(year=2000, month=4, day=4, hour=4, tzinfo=timezone.utc),
+                "columns": [
+                    {"ref": "customer_age", "value": 12},
+                    {"ref": "our_strengths", "value": "This is my review. Very nice."},
+                    {"ref": "boolean_col", "value": True},
+                    {"ref": "text_col", "value": "samsung"},
+                    {
+                        "ref": "date_col",
+                        "value": datetime(year=2000, month=4, day=4, hour=4, tzinfo=timezone.utc),
+                    },
+                ]
             },
         ],
     )
@@ -657,17 +605,24 @@ def test_filtering_rows_succeeds(
     controller: ProjectsController, create_project: CreateProjectFunctionType
 ) -> None:
     project = create_project()
-    controller.append_row(
-        id=project.id,
-        columns=[
-            {"ref": "customer_age", "value": None},
-            {"ref": "our_strengths", "value": "Some other text."},
-            {"ref": "boolean_col", "value": False},
-            {"ref": "text_col", "value": "iphone"},
+    append_rows_and_retrieve(
+        controller,
+        project_id=project.id,
+        rows=[
             {
-                "ref": "date_col",
-                "value": datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
-            },
+                "columns": [
+                    {"ref": "customer_age", "value": None},
+                    {"ref": "our_strengths", "value": "Some other text."},
+                    {"ref": "boolean_col", "value": False},
+                    {"ref": "text_col", "value": "iphone"},
+                    {
+                        "ref": "date_col",
+                        "value": datetime(
+                            year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc
+                        ),
+                    },
+                ]
+            }
         ],
     )
 
@@ -687,17 +642,24 @@ def test_retrieving_a_row_succeeds(
     controller: ProjectsController, create_project: CreateProjectFunctionType
 ) -> None:
     project = create_project()
-    row = controller.append_row(
-        id=project.id,
-        columns=[
-            {"ref": "customer_age", "value": 400},
-            {"ref": "our_strengths", "value": "Some other text."},
-            {"ref": "boolean_col", "value": False},
-            {"ref": "text_col", "value": "iphone"},
+    (row,) = append_rows_and_retrieve(
+        controller,
+        project_id=project.id,
+        rows=[
             {
-                "ref": "date_col",
-                "value": datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
-            },
+                "columns": [
+                    {"ref": "customer_age", "value": 400},
+                    {"ref": "our_strengths", "value": "Some other text."},
+                    {"ref": "boolean_col", "value": False},
+                    {"ref": "text_col", "value": "iphone"},
+                    {
+                        "ref": "date_col",
+                        "value": datetime(
+                            year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc
+                        ),
+                    },
+                ]
+            }
         ],
     )
     retrieved = controller.retrieve_row(p_id=project.id, r_id=row.id)
@@ -712,17 +674,24 @@ def test_removing_a_row_succeeds(
     project = create_project()
 
     old_num_rows = controller.list_rows(id=project.id, limit=1).count
-    row = controller.append_row(
-        id=project.id,
-        columns=[
-            {"ref": "customer_age", "value": 400},
-            {"ref": "our_strengths", "value": "Some other text."},
-            {"ref": "boolean_col", "value": False},
-            {"ref": "text_col", "value": "iphone"},
+    (row,) = append_rows_and_retrieve(
+        controller,
+        project_id=project.id,
+        rows=[
             {
-                "ref": "date_col",
-                "value": datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
-            },
+                "columns": [
+                    {"ref": "customer_age", "value": 400},
+                    {"ref": "our_strengths", "value": "Some other text."},
+                    {"ref": "boolean_col", "value": False},
+                    {"ref": "text_col", "value": "iphone"},
+                    {
+                        "ref": "date_col",
+                        "value": datetime(
+                            year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc
+                        ),
+                    },
+                ]
+            }
         ],
     )
     interim_num_rows = controller.list_rows(id=project.id, limit=1).count
@@ -737,17 +706,24 @@ def test_updating_a_row_succeeds(
     controller: ProjectsController, create_project: CreateProjectFunctionType
 ) -> None:
     project = create_project()
-    row = controller.append_row(
-        id=project.id,
-        columns=[
-            {"ref": "customer_age", "value": 400},
-            {"ref": "our_strengths", "value": "Some other text."},
-            {"ref": "boolean_col", "value": False},
-            {"ref": "text_col", "value": "iphone"},
+    (row,) = append_rows_and_retrieve(
+        controller,
+        project_id=project.id,
+        rows=[
             {
-                "ref": "date_col",
-                "value": datetime(year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc),
-            },
+                "columns": [
+                    {"ref": "customer_age", "value": 400},
+                    {"ref": "our_strengths", "value": "Some other text."},
+                    {"ref": "boolean_col", "value": False},
+                    {"ref": "text_col", "value": "iphone"},
+                    {
+                        "ref": "date_col",
+                        "value": datetime(
+                            year=2020, month=10, day=10, hour=17, tzinfo=timezone.utc
+                        ),
+                    },
+                ]
+            }
         ],
     )
     expected_dict = row.dict()
