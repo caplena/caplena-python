@@ -17,11 +17,14 @@ fmt format: ## Run code formatters
 	ruff check . --fix
 	ruff format .
 
-test: ## Run tests
-	pytest .
+test: ## Run unit tests (excludes live API integration tests)
+	pytest . -m "not integration"
 
-test-watch: ## Run tests in watching mode
-	ptw -w
+test-integration: ## Run live API integration tests (requires local Caplena API)
+	pytest . -m integration
+
+test-watch: ## Run unit tests in watching mode
+	ptw -w -m "not integration"
 
 build-docs: ## Builds Sphinx HTML docs
 	cd docs && $(MAKE) html
