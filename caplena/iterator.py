@@ -80,13 +80,13 @@ class CaplenaIterator(Generic[T]):
 
     def __next__(self) -> T:
         if self._limit and self._total_results_iterated >= self._limit:
-            raise StopIteration()
+            raise StopIteration
 
         self._total_results_iterated += 1
         if self._total_results_iterated > self._total_results_fetched and self._has_next:
             self._retrieve_next_page()
         elif self._total_results_iterated > self._total_results_fetched:
-            raise StopIteration()
+            raise StopIteration
 
         self._current_results_index += 1
         return self._results[self._current_results_index - 1]

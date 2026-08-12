@@ -211,7 +211,7 @@ def create_project(
         try:
             controller.remove(id=project_id)
         except ApiException:
-            print("Could not remove project with id:", project_id)
+            print("Could not remove project with id:", project_id)  # noqa: T201
 
 
 def wait_until_append_succeeds(

@@ -9,14 +9,13 @@ install: ## Installs all dependencies
 	pre-commit
 
 lint: ## Run code linters
-	black .
-	isort .
-	flake8 .
+	ruff check .
+	ruff format --check .
 	mypy caplena tests --install-types
 
 fmt format: ## Run code formatters
-	black caplena tests
-	isort caplena tests
+	ruff check . --fix
+	ruff format .
 
 test: ## Run tests
 	pytest .

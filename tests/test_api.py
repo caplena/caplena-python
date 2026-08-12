@@ -325,9 +325,7 @@ class ApiFilterQueryParamTests(unittest.TestCase):
                 datetime(2022, 1, 1, tzinfo=timezone.utc),
                 datetime(2000, 3, 31, 18, tzinfo=timezone.utc),
             ]
-        ) & Pf.last_modified(
-            gte=datetime(2021, 5, 17, 12, 10, 50, 500000, tzinfo=timezone.utc)
-        )  # noqa: W503
+        ) & Pf.last_modified(gte=datetime(2021, 5, 17, 12, 10, 50, 500000, tzinfo=timezone.utc))  # noqa: W503
         expected = {
             "last_modified": "gte:2022-01-01T00\\:00\\:00.000Z,gte:2000-03-31T18\\:00\\:00.000Z;gte:2021-05-17T12\\:10\\:50.500Z"
         }
