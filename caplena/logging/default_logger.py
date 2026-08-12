@@ -11,4 +11,4 @@ class DefaultLogger(Logger):
             msg += " (" + ", ".join(extra_str) + ")"
 
         if level.level >= self._logging_level.level:
-            print(msg, file=stderr)
+            print(msg, file=stderr)  # noqa: T201

@@ -52,9 +52,7 @@ doc = [
     "furo",
 ]
 dev = [
-    "isort",
-    "black",
-    "flake8",
+    "ruff~=0.16.0",
     "pyright",
     "pre-commit",
     "mypy",
@@ -67,21 +65,3 @@ dev = [
 "API Reference" = "https://caplena.com/docs/developers/"
 "Bug Tracker" = "https://github.com/caplena/caplena-python/issues"
 "Documentation" = "https://caplena.com/docs/sdk/python/"
-
-[tool.black]
-line-length = 100
-include = '.pyi?$'
-exclude = '''
-/(
-    .git
-    | .hg
-    | .mypy_cache
-    | .tox
-    | .venv
-    | venv
-    | _build
-    | buck-out
-    | build
-    | dist
-)/
-'''
