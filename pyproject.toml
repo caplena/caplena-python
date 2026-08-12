@@ -57,6 +57,8 @@ dev = [
     "pre-commit",
     "mypy",
     "types-requests",
+    "types-PySocks",
+    "types-pexpect",
 ]
 
 [project.urls]
