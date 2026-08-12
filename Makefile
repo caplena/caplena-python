@@ -11,7 +11,7 @@ install: ## Installs all dependencies
 lint: ## Run code linters
 	ruff check .
 	ruff format --check .
-	mypy caplena tests --install-types
+	mypy caplena tests --install-types --non-interactive
 
 fmt format: ## Run code formatters
 	ruff check . --fix
