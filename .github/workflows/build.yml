@@ -16,10 +16,26 @@ jobs:
       - run: make install
       - run: make lint
 
+  test:
+    name: Run tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10']
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install flit
+      # Avoid `make install` (runs pre-commit); install runtime + test deps only
+      - run: flit install --deps production --extras test --symlink
+      - run: make test
+
   build-docs:
     name: Build documentation
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [lint, test]
     if: ${{ contains(fromJSON('["refs/heads/main", "refs/heads/develop"]'), github.ref) }}
     steps:
       - uses: actions/checkout@v2
