@@ -51,7 +51,13 @@ Run all tests:
 make test
 ```
 
-Run all tests in watch mode:
+Run live API integration tests (requires a Caplena API at `http://localhost:8000`):
+
+```sh
+make test-integration
+```
+
+Run unit tests in watch mode:
 
 ```sh
 make test-watch

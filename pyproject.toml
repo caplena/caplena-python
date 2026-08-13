@@ -67,3 +67,11 @@ dev = [
 "API Reference" = "https://caplena.com/docs/developers/"
 "Bug Tracker" = "https://github.com/caplena/caplena-python/issues"
 "Documentation" = "https://caplena.com/docs/sdk/python/"
+
+[tool.pytest.ini_options]
+# Pytest 8+ defaults to importlib mode, which does not put the repo root on
+# sys.path. Keep `from tests.common import ...` working.
+pythonpath = ["."]
+markers = [
+    "integration: live API tests (require a running Caplena backend)",
+]

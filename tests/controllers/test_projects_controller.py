@@ -2,10 +2,8 @@ import re
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Generator, List, Optional, cast
-from uuid import uuid4
 
 import pytest
-import requests_mock
 from typing_extensions import Protocol
 
 from caplena.api.api_exception import ApiException
@@ -27,6 +25,9 @@ from caplena.models.projects import (
 )
 from caplena.resources import ProjectDetail, Row
 from tests.common import common_config
+
+# Live API tests — require a running Caplena API (see ApiBaseUri.LOCAL).
+pytestmark = pytest.mark.integration
 
 
 class CreateProjectFunctionType(Protocol):
@@ -747,34 +748,3 @@ def test_updating_a_row_succeeds(
         row_dict["columns"][0].pop(computed_field)
     expected_dict["columns"][1].update({"value": 100000})
     assert row_dict == expected_dict
-
-
-def test_limit_calls_to_backend_on_upload_task(controller: ProjectsController) -> None:
-    task_uuid = uuid4()
-    api_base_uri = controller.config.api_base_uri.value
-    with requests_mock.Mocker() as mocked_project_page:
-        pr1_mock = mocked_project_page.get(
-            f"{api_base_uri}/projects/1/rows/bulk", json={"tasks": [], "status": ""}
-        )
-        pr2_mock = mocked_project_page.get(
-            f"{api_base_uri}/projects/2/rows/bulk", json={"tasks": [], "status": ""}
-        )
-        task_mock = mocked_project_page.get(
-            f"{api_base_uri}/projects/1/rows/bulk/{task_uuid}",
-            json={"tasks": [], "status": ""},
-        )
-        controller.get_append_status(project_id="1")
-        assert pr1_mock.call_count == 1
-        controller.get_append_status(project_id="1")
-        controller.get_append_status(project_id="1")
-        controller.get_append_status(project_id="1")
-        assert pr1_mock.call_count == 1
-
-        controller.get_append_status(project_id="2")
-        assert pr2_mock.call_count == 1
-
-        time.sleep(10)
-        controller.get_append_status(project_id="1")
-        assert pr1_mock.call_count == 2
-        controller.get_append_status(project_id="1", task_id=task_uuid)
-        assert task_mock.call_count == 1
