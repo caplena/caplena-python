@@ -442,6 +442,71 @@ def test_removing_a_project_succeeds(
     assert old_num_projects + 1 == interim_num_projects
 
 
+def test_creating_an_empty_auxiliary_column_succeeds(
+    controller: ProjectsController, create_project: CreateProjectFunctionType
+) -> None:
+    project = create_project()
+    initial_column_count = len(project.columns)
+
+    column = controller.create_empty_column(
+        id=project.id,
+        name="Empty date column",
+        column_type="date",
+        ref="empty_date_col",
+    )
+
+    assert isinstance(column, ProjectDetail.Auxiliary)
+    assert column.ref == "empty_date_col"
+    assert column.name == "Empty date column"
+    assert column.type == "date"
+
+    project.refresh()
+    assert len(project.columns) == initial_column_count + 1
+    assert any(col.ref == "empty_date_col" for col in project.columns)
+
+
+def test_creating_an_empty_tta_column_succeeds(
+    controller: ProjectsController, create_project: CreateProjectFunctionType
+) -> None:
+    project = create_project()
+
+    column = project.create_empty_column(
+        name="Empty TTA column",
+        column_type="text_to_analyze",
+        ref="empty_tta_col",
+    )
+
+    assert isinstance(column, ProjectDetail.TextToAnalyze)
+    assert column.ref == "empty_tta_col"
+    assert column.name == "Empty TTA column"
+    assert column.type == "text_to_analyze"
+    assert column.description == ""
+    assert len(column.topics) == 0
+
+
+def test_creating_an_empty_column_with_duplicate_ref_fails(
+    controller: ProjectsController, create_project: CreateProjectFunctionType
+) -> None:
+    project = create_project()
+
+    controller.create_empty_column(
+        id=project.id,
+        name="First column",
+        column_type="text",
+        ref="duplicate_ref",
+    )
+
+    with pytest.raises(ApiException) as exc_info:
+        controller.create_empty_column(
+            id=project.id,
+            name="Second column",
+            column_type="text",
+            ref="duplicate_ref",
+        )
+
+    assert exc_info.value.code == "columns.duplicate_reference"
+
+
 def test_updating_a_project_succeeds(
     controller: ProjectsController, create_project: CreateProjectFunctionType
 ) -> None:
