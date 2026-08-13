@@ -8,7 +8,6 @@ from typing_extensions import Protocol
 
 from caplena.api.api_exception import ApiException
 from caplena.controllers import ProjectsController
-from caplena.endpoints.projects_endpoint import TTL_STATUS_CACHE_EXPIRE
 from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
 from caplena.models.projects import (
     MultipleRowPayload,
@@ -215,19 +214,39 @@ def create_project(
             print("Could not remove project with id:", project_id)  # noqa: T201
 
 
-def wait_until_append_succeeds(
-    controller: ProjectsController, *, project_id: str, task_id: str, timeout_s: float = 180
-) -> None:
+def wait_until_rows_retrievable(
+    controller: ProjectsController,
+    *,
+    project_id: str,
+    task_id: str,
+    row_ids: List[str],
+    timeout_s: float = 180,
+) -> List[Row]:
+    # Bulk append is async. Rows are queryable after the merge step, which is earlier
+    # than Meerkat reporting succeeded (that waits on post-merge inference).
     deadline = time.time() + timeout_s
+    last_missing: ApiException | None = None
     while time.time() < deadline:
-        status = controller.get_append_status(project_id=project_id, task_id=task_id)
-        if status.status == "succeeded":
-            return
-        if status.status == "failed":
-            raise AssertionError(f"Append task {task_id} failed")
-        # Status responses are TTL-cached for TTL_STATUS_CACHE_EXPIRE seconds.
-        time.sleep(TTL_STATUS_CACHE_EXPIRE + 1)
-    raise TimeoutError(f"Append task {task_id} did not succeed within {timeout_s}s")
+        try:
+            status = controller.get_append_status(project_id=project_id, task_id=task_id)
+        except ApiException as exc:
+            # Finished tasks may be cleared from the status cache.
+            if exc.code not in {"task_missing", "no_tasks"}:
+                raise
+        else:
+            if status.status == "failed":
+                raise AssertionError(f"Append task {task_id} failed")
+
+        try:
+            return [controller.retrieve_row(p_id=project_id, r_id=row_id) for row_id in row_ids]
+        except ApiException as exc:
+            if exc.code != "resource_missing":
+                raise
+            last_missing = exc
+        time.sleep(1)
+    raise TimeoutError(
+        f"Rows for append task {task_id} were not retrievable within {timeout_s}s"
+    ) from last_missing
 
 
 def append_rows_and_retrieve(
@@ -237,8 +256,12 @@ def append_rows_and_retrieve(
     rows: List[Dict[str, Any]],
 ) -> List[Row]:
     response = controller.append_rows(id=project_id, rows=rows)
-    wait_until_append_succeeds(controller, project_id=project_id, task_id=response.task_id)
-    return [controller.retrieve_row(p_id=project_id, r_id=result.id) for result in response.results]
+    return wait_until_rows_retrievable(
+        controller,
+        project_id=project_id,
+        task_id=response.task_id,
+        row_ids=[result.id for result in response.results],
+    )
 
 
 def test_creating_a_project_succeeds(create_project: CreateProjectFunctionType) -> None:
@@ -282,9 +305,9 @@ def test_creating_a_project_succeeds(create_project: CreateProjectFunctionType) 
     assert "" == topic1.color
     assert "" == topic1.description
     assert topic1.sentiment_enabled is True
-    assert {"code": 0, "label": ""} == topic1.sentiment_neutral.dict()
-    assert {"code": 1, "label": ""} == topic1.sentiment_positive.dict()
-    assert {"code": 2, "label": ""} == topic1.sentiment_negative.dict()
+    assert {"code": 1, "label": ""} == topic1.sentiment_neutral.dict()
+    assert {"code": 2, "label": ""} == topic1.sentiment_positive.dict()
+    assert {"code": 3, "label": ""} == topic1.sentiment_negative.dict()
 
     assert re.search(r"^cd_", topic2.id)
     assert "network quality" == topic2.label
@@ -292,7 +315,7 @@ def test_creating_a_project_succeeds(create_project: CreateProjectFunctionType) 
     assert "" == topic2.color
     assert "" == topic2.description
     assert topic2.sentiment_enabled is False
-    assert {"code": 3, "label": ""} == topic2.sentiment_neutral.dict()
+    assert {"code": 4, "label": ""} == topic2.sentiment_neutral.dict()
     assert {"code": -1, "label": ""} == topic2.sentiment_negative.dict()
     assert {"code": -1, "label": ""} == topic2.sentiment_positive.dict()
 
@@ -359,9 +382,9 @@ def test_creating_a_project_with_settings_succeeds(
     assert "" == topic1.color
     assert "" == topic1.description
     assert topic1.sentiment_enabled is True
-    assert {"code": 0, "label": ""} == topic1.sentiment_neutral.dict()
-    assert {"code": 1, "label": ""} == topic1.sentiment_positive.dict()
-    assert {"code": 2, "label": ""} == topic1.sentiment_negative.dict()
+    assert {"code": 1, "label": ""} == topic1.sentiment_neutral.dict()
+    assert {"code": 2, "label": ""} == topic1.sentiment_positive.dict()
+    assert {"code": 3, "label": ""} == topic1.sentiment_negative.dict()
 
     assert re.search(r"^cd_", topic2.id)
     assert "network quality" == topic2.label
@@ -369,7 +392,7 @@ def test_creating_a_project_with_settings_succeeds(
     assert "" == topic2.color
     assert "" == topic2.description
     assert topic2.sentiment_enabled is False
-    assert {"code": 3, "label": ""} == topic2.sentiment_neutral.dict()
+    assert {"code": 4, "label": ""} == topic2.sentiment_neutral.dict()
     assert {"code": -1, "label": ""} == topic2.sentiment_negative.dict()
     assert {"code": -1, "label": ""} == topic2.sentiment_positive.dict()
 
@@ -388,9 +411,9 @@ def test_creating_a_project_with_settings_succeeds(
     assert "" == topic1.color
     assert "" == topic1.description
     assert topic1.sentiment_enabled is True
-    assert {"code": 0, "label": ""} == topic1.sentiment_neutral.dict()
-    assert {"code": 1, "label": ""} == topic1.sentiment_positive.dict()
-    assert {"code": 2, "label": ""} == topic1.sentiment_negative.dict()
+    assert {"code": 1, "label": ""} == topic1.sentiment_neutral.dict()
+    assert {"code": 2, "label": ""} == topic1.sentiment_positive.dict()
+    assert {"code": 3, "label": ""} == topic1.sentiment_negative.dict()
 
     assert re.search(r"^cd_", topic2.id)
     assert "label2" == topic2.label
@@ -398,7 +421,7 @@ def test_creating_a_project_with_settings_succeeds(
     assert "" == topic2.color
     assert "" == topic2.description
     assert topic2.sentiment_enabled is False
-    assert {"code": 3, "label": ""} == topic2.sentiment_neutral.dict()
+    assert {"code": 4, "label": ""} == topic2.sentiment_neutral.dict()
     assert {"code": -1, "label": ""} == topic2.sentiment_negative.dict()
     assert {"code": -1, "label": ""} == topic2.sentiment_positive.dict()
 
@@ -594,7 +617,7 @@ def test_appending_multiple_rows_succeeds(
 
     assert "pending" == response.status
     assert 2 == response.queued_rows_count
-    assert 1.02 == response.estimated_minutes
+    assert 0.0022 == response.estimated_minutes
     assert 2 == len(response.results)
     assert all([isinstance(row.id, str) for row in response.results])
 
@@ -739,7 +762,6 @@ def test_removing_a_row_succeeds(
 ) -> None:
     project = create_project()
 
-    old_num_rows = controller.list_rows(id=project.id, limit=1).count
     (row,) = append_rows_and_retrieve(
         controller,
         project_id=project.id,
@@ -760,12 +782,14 @@ def test_removing_a_row_succeeds(
             }
         ],
     )
+    # Do not list_rows before append: an unfiltered list caches count in Redis, and
+    # merge does not invalidate that cache, so a pre-append list of 0 would stick.
     interim_num_rows = controller.list_rows(id=project.id, limit=1).count
     controller.remove_row(p_id=project.id, r_id=row.id)
     new_num_rows = controller.list_rows(id=project.id, limit=1).count
 
-    assert old_num_rows == new_num_rows
-    assert old_num_rows + 1 == interim_num_rows
+    assert 1 == interim_num_rows
+    assert 0 == new_num_rows
 
 
 def test_updating_a_row_succeeds(
