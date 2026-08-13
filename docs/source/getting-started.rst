@@ -9,7 +9,7 @@ Installation
 Minimum Version
 ~~~~~~~~~~~~~~~
 
-We recommend using the latest version of Python. Caplena supports Python 3.8 and newer.
+We recommend using the latest version of Python. Caplena supports Python 3.10 and newer.
 
 Dependencies
 ~~~~~~~~~~~~
