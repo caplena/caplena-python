@@ -17,7 +17,7 @@ To view the Python API docs and refernces, head over to our [SDK documentation](
 
 ### Minimum Version
 
-We recommend using the latest version of Python. Caplena supports Python 3.8 and newer.
+We recommend using the latest version of Python. Caplena supports Python 3.10 and newer.
 
 ### Dependencies
 
@@ -51,7 +51,13 @@ Run all tests:
 make test
 ```
 
-Run all tests in watch mode:
+Run live API integration tests (requires a Caplena API at `http://localhost:8000`):
+
+```sh
+make test-integration
+```
+
+Run unit tests in watch mode:
 
 ```sh
 make test-watch

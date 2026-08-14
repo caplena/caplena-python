@@ -133,6 +133,48 @@ class ProjectsController(BaseController):
         response = self.patch(path="/projects/{id}", path_params={"id": id}, json=json)
         return self.build_response(response, resource=ProjectDetail)
 
+    def create_empty_column(
+        self,
+        *,
+        id: str,
+        name: str,
+        column_type: str,
+        ref: Optional[str] = NOT_SET,
+    ) -> "ProjectDetail.Column":
+        """Creates an empty column on a previously created project.
+
+        :param id: The project identifier.
+        :param name: Human-readable name for this column.
+        :param column_type: Type of the column to create. One of
+            :code:`numerical`, :code:`boolean`, :code:`text`, :code:`date`,
+            :code:`text_to_analyze`, or :code:`null`.
+        :param ref: Human-readable identifier for this column. If omitted, one is generated.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        json = self.api.build_payload(
+            name=name,
+            column_type=column_type,
+            ref=ref,
+        )
+
+        response = self.post(
+            path="/projects/{id}/columns",
+            path_params={"id": id},
+            json=json,
+            allowed_codes={200},
+        )
+        column_json = dict(self._retrieve_json_or_raise(response))
+        if column_json["type"] == "text_to_analyze":
+            if column_json.get("topics") is None:
+                column_json["topics"] = []
+            if column_json.get("metadata") is None:
+                column_json["metadata"] = {"reviewed_count": 0, "learns_from": None}
+            return ProjectDetail.TextToAnalyze.build_obj(
+                column_json, controller=self, obj_exists=True
+            )
+
+        return ProjectDetail.Auxiliary.build_obj(column_json, controller=self, obj_exists=True)
+
     def append_rows(
         self,
         *,
@@ -187,27 +229,6 @@ class ProjectsController(BaseController):
             allowed_codes={200},
         )
         return self.build_response(response, resource=RowsAppendStatus)
-
-    def append_row(
-        self,
-        *,
-        id: str,
-        columns: List[Dict[str, Any]],
-    ) -> "Row":
-        """Appends a single row to a previously created project.
-
-        :param id: The project identifier.
-        :param columns: The columns for the new row.
-        :raises caplena.api.ApiException: An API exception.
-        """
-        json = self.api.build_payload(columns=columns)
-        response = self.post(
-            path="/projects/{id}/rows",
-            path_params={"id": id},
-            json=json,
-        )
-
-        return self.build_response(response, resource=Row, metadata={"project": id})
 
     def list_rows(
         self,
@@ -324,14 +345,6 @@ class RowOperationsMixin(OperationsProtocol, Protocol):
         """
         return self.controller.retrieve_row(p_id=self.id, r_id=id)
 
-    def append_row(self, *, columns: List[Dict[str, Any]]) -> "Row":
-        """Appends a single row to this project.
-
-        :param columns: The columns for the new row.
-        :raises caplena.api.ApiException: An API exception.
-        """
-        return self.controller.append_row(id=self.id, columns=columns)
-
     def append_rows(self, *, rows: List[Dict[str, Any]]) -> "RowsAppend":
         """Appends multiple rows to this project. It is possible to append a
         maximum of 20 rows in a single request.
@@ -382,6 +395,26 @@ class BaseProjectOperationsMixin(OperationsProtocol, Protocol):
         if modified_dict != NOT_SET:
             project = self.controller.update(id=self.id, **modified_dict)
             self._refresh_from(attrs=project._attrs)
+
+    def create_empty_column(
+        self,
+        *,
+        name: str,
+        column_type: str,
+        ref: Optional[str] = NOT_SET,
+    ) -> "ProjectDetail.Column":
+        """Creates an empty column on this project.
+
+        :param name: Human-readable name for this column.
+        :param column_type: Type of the column to create. One of
+            :code:`numerical`, :code:`boolean`, :code:`text`, :code:`date`,
+            :code:`text_to_analyze`, or :code:`null`.
+        :param ref: Human-readable identifier for this column. If omitted, one is generated.
+        :raises caplena.api.ApiException: An API exception.
+        """
+        return self.controller.create_empty_column(
+            id=self.id, name=name, column_type=column_type, ref=ref
+        )
 
 
 class ProjectDetail(

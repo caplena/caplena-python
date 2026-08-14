@@ -1,16 +1,16 @@
 {
   "python.pythonPath": "/Users/xx/.virtualenvs/caplena-python/bin/python",
   "python.analysis.typeCheckingMode": "strict",
-  "python.formatting.provider": "black",
   "[python]": {
     "editor.tabSize": 4,
     "editor.formatOnSave": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.codeActionsOnSave": {
-      "source.organizeImports": true
+      "source.organizeImports": "explicit",
+      "source.fixAll": "explicit"
     }
   },
   "python.linting.enabled": true,
-  "python.linting.flake8Enabled": true,
   "python.linting.mypyEnabled": true,
   "python.linting.mypyCategorySeverity.error": "Warning",
   "autoDocstring.docstringFormat": "sphinx",

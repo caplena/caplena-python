@@ -311,9 +311,7 @@ class BaseObject(Generic[BC]):
 
     def _rec_prepare(self, attr: Any, *, controller: Optional[BC], obj_exists: bool) -> None:
         if isinstance(attr, BaseObject):
-            attr._prepare(
-                controller=controller, obj_exists=obj_exists
-            )  # pyright: reportUnknownMemberType=false
+            attr._prepare(controller=controller, obj_exists=obj_exists)  # pyright: reportUnknownMemberType=false
         elif isinstance(attr, CaplenaList):
             for i in attr:
                 self._rec_prepare(i, controller=controller, obj_exists=obj_exists)

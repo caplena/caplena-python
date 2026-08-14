@@ -1,0 +1,42 @@
+target-version = "py38"
+line-length = 100
+exclude = [
+    ".git",
+    "__pycache__",
+    ".history",
+    ".venv",
+    "venv",
+    "docs",
+    "dist",
+    "build",
+]
+
+[lint]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort
+    "T20", # flake8-print
+    "B904", # flake8-bugbear (raise-without-from-inside-except)
+    "EM", # flake8-errmsg
+    "G", # flake8-logging-format
+    "LOG", # flake8-logging
+    "RSE", # flake8-raise
+    "TRY003", # abstract raise to inner function
+    "TRY201", # bare raise preserves traceback
+    "TRY400", # logging.exception instead of logging.error
+    "TRY401", # redundant exc_info in logging.exception
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",
+    "EM101",
+    "EM102",
+    "EM103",
+    "TRY003",
+]
+
+[lint.isort]
+known-first-party = ["caplena"]
+combine-as-imports = true

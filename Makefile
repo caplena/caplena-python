@@ -9,20 +9,22 @@ install: ## Installs all dependencies
 	pre-commit
 
 lint: ## Run code linters
-	black .
-	isort .
-	flake8 .
-	mypy caplena tests --install-types
+	ruff check .
+	ruff format --check .
+	mypy caplena tests --install-types --non-interactive
 
 fmt format: ## Run code formatters
-	black caplena tests
-	isort caplena tests
+	ruff check . --fix
+	ruff format .
 
-test: ## Run tests
-	pytest .
+test: ## Run unit tests (excludes live API integration tests)
+	pytest . -m "not integration"
 
-test-watch: ## Run tests in watching mode
-	ptw -w
+test-integration: ## Run live API integration tests (requires local Caplena API)
+	pytest . -m integration
+
+test-watch: ## Run unit tests in watching mode
+	ptw -w -m "not integration"
 
 build-docs: ## Builds Sphinx HTML docs
 	cd docs && $(MAKE) html

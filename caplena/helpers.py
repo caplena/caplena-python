@@ -13,7 +13,9 @@ class Helpers:
     @staticmethod
     def get_user_agent(identifier: str) -> str:
         client_info = f"{identifier}/{__version__}"
-        python_info = "python/{ver.major}.{ver.minor}.{ver.micro}".format(ver=sys.version_info)
+        python_info = (
+            f"python/{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        )
         system_info = f"{platform.system()}/{platform.release()}"
         return " ".join([client_info, python_info, system_info])
 
