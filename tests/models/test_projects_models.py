@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import pytest
 
@@ -122,10 +122,17 @@ class TestNonTTAColumnDefinition:
                 str(datetime(2023, 6, 29, 11, 11, 11)),
                 str(datetime(2023, 6, 29, 11, 11, 11)),
             ),
+            (NonTTAColumnType.single_select, "Phone", "Phone"),
+            (NonTTAColumnType.single_select, 1, "1"),
+            (NonTTAColumnType.multi_select, ["Phone", "E-Mail"], ["Phone", "E-Mail"]),
+            (NonTTAColumnType.multi_select, "Phone", ["Phone"]),
         ],
     )
     def test_build_cell(
-        self, type: NonTTAColumnType, value: str, expected: Union[int, datetime, bool, str]
+        self,
+        type: NonTTAColumnType,
+        value: Any,
+        expected: Union[int, datetime, bool, str, List[str]],
     ) -> None:
         non_tta_col_def = NonTTAColumnDefinition(ref="_", type=type, name="_")
         actual = non_tta_col_def.build_cell(ref="_", value=value)

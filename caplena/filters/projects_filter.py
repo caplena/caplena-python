@@ -350,6 +350,57 @@ class RowsFilter(ApiFilter):
             )
 
         @classmethod
+        def single_select(
+            cls,
+            *,
+            ref: str,
+            exact: ZeroOrMany[str] = None,
+            is_non_existent: ZeroOrMany[bool] = None,
+        ) -> "RowsFilter":
+            """Allows filtering on single select columns. Options are referenced by their
+            label, matched case-sensitively. A label that does not exist on the column
+            matches no rows.
+
+            :param ref: The single select column reference.
+            :param exact: Exact filter for the label of the selected option.
+            :param is_non_existent: Allows filtering for rows where this cell does not exist.
+            """
+            return RowsFilter.construct(
+                name="columns",
+                filters={
+                    f"{ref}[single_select]": exact,
+                    f"{ref}[single_select].is_non_existent": is_non_existent,
+                },
+            )
+
+        @classmethod
+        def multi_select(
+            cls,
+            *,
+            ref: str,
+            contains: ZeroOrMany[str] = None,
+            is_empty: ZeroOrMany[bool] = None,
+            is_non_existent: ZeroOrMany[bool] = None,
+        ) -> "RowsFilter":
+            """Allows filtering on multi select columns. Options are referenced by their
+            label, matched case-sensitively. A label that does not exist on the column
+            matches no rows.
+
+            :param ref: The multi select column reference.
+            :param contains: Filter for rows whose cell contains the given option label.
+            :param is_empty: Allows filtering on empty or non-empty cells.
+            :param is_non_existent: Allows filtering for rows where this cell does not exist.
+            """
+            return RowsFilter.construct(
+                name="columns",
+                filters={
+                    f"{ref}[multi_select]": contains,
+                    f"{ref}[multi_select].is_empty": is_empty,
+                    f"{ref}[multi_select].is_non_existent": is_non_existent,
+                },
+            )
+
+        @classmethod
         def text(
             cls,
             *,

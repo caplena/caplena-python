@@ -12,10 +12,22 @@ class NonTTAColumnType(Enum):
     date = "date"
     boolean = "boolean"
     text = "text"
+    single_select = "single_select"
+    multi_select = "multi_select"
 
 
 class TTAColumnType(Enum):
     text_to_analyze = "text_to_analyze"
+
+
+NonTTACellValue = Union[int, str, bool, datetime, List[str]]
+
+
+def to_option_labels(val: Any) -> List[str]:
+    """Coerces a multi_select value into the list of option labels the API expects."""
+    if isinstance(val, (list, tuple, set)):
+        return [str(option) for option in cast(Sequence[Any], val)]
+    return [str(val)]
 
 
 class NonTTAColumnDefinition(pydantic.BaseModel):
@@ -24,22 +36,25 @@ class NonTTAColumnDefinition(pydantic.BaseModel):
     ref: str
     type: NonTTAColumnType
     name: str
-    convertor: ClassVar[Dict[str, Callable[[str], Union[int, datetime, bool, str]]]] = {
+    convertor: ClassVar[Dict[str, Callable[[Any], NonTTACellValue]]] = {
         NonTTAColumnType.numerical.value: int,
         NonTTAColumnType.date.value: datetime.fromisoformat,
         NonTTAColumnType.boolean.value: bool,
         NonTTAColumnType.text.value: str,
+        # select cells are referenced by their option label, not by their enum id
+        NonTTAColumnType.single_select.value: str,
+        NonTTAColumnType.multi_select.value: to_option_labels,
     }
 
     # we want the enum value when serialising to .dict()
     model_config = pydantic.ConfigDict(use_enum_values=True)
 
-    def convert_to_type(self, val: str) -> Union[int, datetime, bool, str]:
+    def convert_to_type(self, val: Any) -> NonTTACellValue:
         # we use the enum's values here since the class is configured to always use enum's values
         type_val = cast(str, self.type)  # Config.use_enum_values converts type to .value (str)
         return self.convertor[type_val](val)
 
-    def build_cell(self, ref: str, value: str) -> "NonTTACell":
+    def build_cell(self, ref: str, value: Any) -> "NonTTACell":
         return NonTTACell(ref=ref, value=self.convert_to_type(value))
 
 
@@ -115,10 +130,15 @@ class TTACell(pydantic.BaseModel):
 
 
 class NonTTACell(pydantic.BaseModel):
-    """Cell definition for NonTextToAnalyze cell."""
+    """Cell definition for NonTextToAnalyze cell.
+
+    For :code:`single_select` columns the value is the option label, for
+    :code:`multi_select` columns it is the list of option labels. Labels that do not
+    exist yet are created as new options on the column.
+    """
 
     ref: str
-    value: Optional[Union[int, str, bool, datetime]] = None
+    value: Optional[NonTTACellValue] = None
 
 
 Cell = Union[TTACell, NonTTACell]
