@@ -164,6 +164,16 @@ Filter rows for column values. Again, we use the *ref* to reference columns
 
   rows = project.list_rows(filter=R.Columns.text_to_analyze(ref='nps_why', source_language="de"))
 
+Select columns are filtered by option label. Labels are matched case-sensitively, and a
+label that does not exist on the column matches no rows:
+
+.. code-block:: python
+
+  rows = project.list_rows(filter=R.Columns.single_select(ref='channel', exact='Phone'))
+  rows = project.list_rows(
+      filter=R.Columns.multi_select(ref='topics_of_interest', contains='Pricing')
+  )
+
 Retrieving row values
 ~~~~~~~~~~~~~~~
 Rows are fetched in batches. If we want to have all row values in an object in memory, we
@@ -184,6 +194,47 @@ You can use the :code:`records` to for example populate a database or create a p
   import pandas as pd
   df = pd.DataFrame(records)
 
+
+Retrieving select values
+~~~~~~~~~~~~~~~
+
+Columns of type :code:`single_select` and :code:`multi_select` hold values picked from a fixed
+set of options. The option labels of such a column are listed in :code:`column.enum`:
+
+.. code-block:: python
+
+  project = client.projects.retrieve(id="pj_1234k")
+  for col in project.columns:
+      if col.type in ("single_select", "multi_select"):
+          print(col.ref, ":", col.enum)
+
+For a row, :code:`col.value` holds the label of the selected option, or the list of labels
+for a :code:`multi_select` column:
+
+.. code-block:: python
+
+  for row in project.list_rows():
+      for col in row.columns:
+          if col.type in ("single_select", "multi_select"):
+              print(col.ref, ":", col.value)
+
+Select cells are written by label. Labels that do not exist yet are created as new options
+on the column:
+
+.. code-block:: python
+
+  row = project.retrieve_row(id="ro_1234k")
+  row.columns[0].value = "Phone"  # a single_select cell
+  row.columns[1].value = ["Pricing", "Support"]  # a multi_select cell
+  row.save()
+
+Passing an empty list :code:`[]` for a multi-select cell stores an empty selection
+(:code:`is_empty`), and :code:`None` removes the cell (:code:`is_non_existent`).
+
+.. note::
+    Select columns are only returned by the API for :code:`Caplena-API-Version: 2026-09-18`
+    and later, which is the client default. On earlier versions they are left out of project
+    and row responses entirely.
 
 Retrieving analysis results
 ~~~~~~~~~~~~~~~
