@@ -23,11 +23,15 @@ class TTAColumnType(Enum):
 NonTTACellValue = Union[int, str, bool, datetime, List[str]]
 
 
-def to_option_labels(val: Any) -> List[str]:
-    """Coerces a multi_select value into the list of option labels the API expects."""
+def to_option_list(val: Any) -> List[Any]:
+    """Wraps a multi_select value into a list, without casting the option types.
+
+    The API itself rejects a type mismatch (e.g. an enum id) with a 422 rather than
+    silently casting it, so this doesn't cast either.
+    """
     if isinstance(val, (list, tuple, set)):
-        return [str(option) for option in cast(Sequence[Any], val)]
-    return [str(val)]
+        return list(cast(Sequence[Any], val))
+    return [val]
 
 
 class NonTTAColumnDefinition(pydantic.BaseModel):
@@ -41,9 +45,9 @@ class NonTTAColumnDefinition(pydantic.BaseModel):
         NonTTAColumnType.date.value: datetime.fromisoformat,
         NonTTAColumnType.boolean.value: bool,
         NonTTAColumnType.text.value: str,
-        # select cells are referenced by their option label, not by their enum id
-        NonTTAColumnType.single_select.value: str,
-        NonTTAColumnType.multi_select.value: to_option_labels,
+        # select cells are referenced by their option label
+        NonTTAColumnType.single_select.value: lambda val: val,
+        NonTTAColumnType.multi_select.value: to_option_list,
     }
 
     # we want the enum value when serialising to .dict()

@@ -228,6 +228,9 @@ on the column:
   row.columns[1].value = ["Pricing", "Support"]  # a multi_select cell
   row.save()
 
+Passing an empty list :code:`[]` for a multi-select cell stores an empty selection
+(:code:`is_empty`), and :code:`None` removes the cell (:code:`is_non_existent`).
+
 .. note::
     Select columns are only returned by the API for :code:`Caplena-API-Version: 2026-09-18`
     and later, which is the client default. On earlier versions they are left out of project

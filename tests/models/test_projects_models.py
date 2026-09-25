@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any, List, Optional, Union
 
+import pydantic
 import pytest
 
 from caplena.errors import DuplicatedTopicsError
@@ -123,7 +124,7 @@ class TestNonTTAColumnDefinition:
                 str(datetime(2023, 6, 29, 11, 11, 11)),
             ),
             (NonTTAColumnType.single_select, "Phone", "Phone"),
-            (NonTTAColumnType.single_select, 1, "1"),
+            (NonTTAColumnType.single_select, 1, 1),
             (NonTTAColumnType.multi_select, ["Phone", "E-Mail"], ["Phone", "E-Mail"]),
             (NonTTAColumnType.multi_select, "Phone", ["Phone"]),
         ],
@@ -137,3 +138,12 @@ class TestNonTTAColumnDefinition:
         non_tta_col_def = NonTTAColumnDefinition(ref="_", type=type, name="_")
         actual = non_tta_col_def.build_cell(ref="_", value=value)
         assert actual.value == expected
+
+    def test_build_cell_multi_select_does_not_cast_option_types(self) -> None:
+        """Non-string options are not silently cast to labels; the API itself rejects
+        the type mismatch with a 422 instead of coercing them."""
+        non_tta_col_def = NonTTAColumnDefinition(
+            ref="_", type=NonTTAColumnType.multi_select, name="_"
+        )
+        with pytest.raises(pydantic.ValidationError):
+            non_tta_col_def.build_cell(ref="_", value=[1, 2])

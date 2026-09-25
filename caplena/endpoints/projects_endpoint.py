@@ -148,7 +148,8 @@ class ProjectsController(BaseController):
         :param name: Human-readable name for this column.
         :param column_type: Type of the column to create. One of
             :code:`numerical`, :code:`boolean`, :code:`text`, :code:`date`,
-            :code:`text_to_analyze`, or :code:`null`.
+            :code:`text_to_analyze`, :code:`single_select`, :code:`multi_select`, or
+            :code:`null`.
         :param ref: Human-readable identifier for this column. If omitted, one is generated.
         :raises caplena.api.ApiException: An API exception.
         """
@@ -408,7 +409,8 @@ class BaseProjectOperationsMixin(OperationsProtocol, Protocol):
         :param name: Human-readable name for this column.
         :param column_type: Type of the column to create. One of
             :code:`numerical`, :code:`boolean`, :code:`text`, :code:`date`,
-            :code:`text_to_analyze`, or :code:`null`.
+            :code:`text_to_analyze`, :code:`single_select`, :code:`multi_select`, or
+            :code:`null`.
         :param ref: Human-readable identifier for this column. If omitted, one is generated.
         :raises caplena.api.ApiException: An API exception.
         """
@@ -570,13 +572,11 @@ class ProjectDetail(
             return super().parse_obj(obj)
 
     class Auxiliary(Column):
-        type: Literal[
-            "numerical", "boolean", "text", "date", "any", "single_select", "multi_select"
-        ]
+        type: Literal["numerical", "boolean", "text", "date", "any"]
         """Type of this column."""
 
-    class Select(Auxiliary):
-        """An auxiliary column whose values are picked from a fixed set of options."""
+    class Select(Column):
+        """A column whose values are picked from a fixed set of options."""
 
         __fields__ = {"ref", "name", "type", "enum"}
 
@@ -882,7 +882,9 @@ class Row(BaseResource[ProjectsController]):
 
         value: Optional[List[str]]
         """Labels of the options selected for this column. Assigning labels that do not
-        exist yet creates them as new options on this column."""
+        exist yet creates them as new options on this column. Assigning an empty list
+        :code:`[]` stores an empty selection (:code:`is_empty`), and :code:`None`
+        removes the cell (:code:`is_non_existent`)."""
 
     class TextToAnalyzeColumn(Column):
         class Topic(BaseObject[ProjectsController]):
