@@ -1,13 +1,13 @@
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Protocol, Union
+from typing import Any, Dict, List, Optional, Protocol, Tuple, Type, Union
 
 from cachetools.func import ttl_cache
 from typing_extensions import Literal
 
 from caplena.api import ApiOrdering
 from caplena.constants import LIST_PAGINATION_LIMIT, NOT_SET
-from caplena.endpoints.base_endpoint import BaseController, BaseObject, BaseResource
+from caplena.endpoints.base_endpoint import BO, BaseController, BaseObject, BaseResource
 from caplena.filters.projects_filter import ProjectsFilter, RowsFilter
 from caplena.helpers import Helpers
 from caplena.http.http_response import HttpResponse
@@ -16,6 +16,7 @@ from caplena.list import CaplenaList
 
 # --- Controller --- #
 TTL_STATUS_CACHE_EXPIRE = 10
+SELECT_COLUMN_TYPES: Tuple[str, ...] = ("single_select", "multi_select")
 
 
 class ProjectsController(BaseController):
@@ -147,7 +148,8 @@ class ProjectsController(BaseController):
         :param name: Human-readable name for this column.
         :param column_type: Type of the column to create. One of
             :code:`numerical`, :code:`boolean`, :code:`text`, :code:`date`,
-            :code:`text_to_analyze`, or :code:`null`.
+            :code:`text_to_analyze`, :code:`single_select`, :code:`multi_select`, or
+            :code:`null`.
         :param ref: Human-readable identifier for this column. If omitted, one is generated.
         :raises caplena.api.ApiException: An API exception.
         """
@@ -169,11 +171,10 @@ class ProjectsController(BaseController):
                 column_json["topics"] = []
             if column_json.get("metadata") is None:
                 column_json["metadata"] = {"reviewed_count": 0, "learns_from": None}
-            return ProjectDetail.TextToAnalyze.build_obj(
-                column_json, controller=self, obj_exists=True
-            )
 
-        return ProjectDetail.Auxiliary.build_obj(column_json, controller=self, obj_exists=True)
+        return ProjectDetail.column_class(column_json["type"]).build_obj(
+            column_json, controller=self, obj_exists=True
+        )
 
     def append_rows(
         self,
@@ -408,7 +409,8 @@ class BaseProjectOperationsMixin(OperationsProtocol, Protocol):
         :param name: Human-readable name for this column.
         :param column_type: Type of the column to create. One of
             :code:`numerical`, :code:`boolean`, :code:`text`, :code:`date`,
-            :code:`text_to_analyze`, or :code:`null`.
+            :code:`text_to_analyze`, :code:`single_select`, :code:`multi_select`, or
+            :code:`null`.
         :param ref: Human-readable identifier for this column. If omitted, one is generated.
         :raises caplena.api.ApiException: An API exception.
         """
@@ -434,7 +436,16 @@ class ProjectDetail(
         name: str
         """Human-readable name for this column."""
 
-        type: Literal["numerical", "boolean", "text", "date", "any", "text_to_analyze"]
+        type: Literal[
+            "numerical",
+            "boolean",
+            "text",
+            "date",
+            "any",
+            "text_to_analyze",
+            "single_select",
+            "multi_select",
+        ]
         """Type of this column."""
 
         def modified_dict(self) -> Any:
@@ -564,6 +575,28 @@ class ProjectDetail(
         type: Literal["numerical", "boolean", "text", "date", "any"]
         """Type of this column."""
 
+    class Select(Column):
+        """A column whose values are picked from a fixed set of options."""
+
+        __fields__ = {"ref", "name", "type", "enum"}
+
+        type: Literal["single_select", "multi_select"]
+        """Type of this column."""
+
+        enum: List[str]
+        """Labels of the options that the values of this column are picked from."""
+
+        def __repr__(self) -> str:
+            return (
+                f"ProjectColumn(ref={self.ref}, type={self.type}, name={self.name}, "
+                f"enum={self.enum})"
+            )
+
+        @classmethod
+        def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail.Select":
+            obj["enum"] = obj.get("enum") or []
+            return super().parse_obj(obj)
+
     __fields__ = {
         "name",
         "owner",
@@ -614,16 +647,19 @@ class ProjectDetail(
         return f"{self.__class__.__name__}(id={self.id}, name={self.name}, columns={self.columns.__repr__()})"
 
     @classmethod
+    def column_class(cls, type: str) -> Type["ProjectDetail.Column"]:
+        """Returns the column resource that represents columns of the given type."""
+        if type == "text_to_analyze":
+            return cls.TextToAnalyze
+        elif type in SELECT_COLUMN_TYPES:
+            return cls.Select
+        else:
+            return cls.Auxiliary
+
+    @classmethod
     def parse_obj(cls, obj: Dict[str, Any]) -> "ProjectDetail":
         obj["columns"] = CaplenaList(
-            values=[
-                (
-                    cls.TextToAnalyze.parse_obj(column)
-                    if column["type"] == "text_to_analyze"
-                    else cls.Auxiliary.parse_obj(column)
-                )
-                for column in obj["columns"]
-            ]
+            values=[cls.column_class(column["type"]).parse_obj(column) for column in obj["columns"]]
         )
         obj["created"] = Helpers.from_rfc3339_datetime(obj["created"])
         obj["last_modified"] = Helpers.from_rfc3339_datetime(obj["last_modified"])
@@ -754,10 +790,19 @@ class Row(BaseResource[ProjectsController]):
         ref: str
         """Human-readable identifier for this column."""
 
-        type: Literal["numerical", "boolean", "text", "date", "any", "text_to_analyze"]
+        type: Literal[
+            "numerical",
+            "boolean",
+            "text",
+            "date",
+            "any",
+            "text_to_analyze",
+            "single_select",
+            "multi_select",
+        ]
         """Type of this column."""
 
-        value: Union[int, float, bool, None, str, datetime]
+        value: Union[int, float, bool, None, str, datetime, List[str]]
         """Value assigned to this column."""
 
         def __repr__(self) -> str:
@@ -811,6 +856,35 @@ class Row(BaseResource[ProjectsController]):
 
         value: str
         """Text value assigned to this column."""
+
+    class SelectColumn(Column):
+        """A cell whose value is picked from the options of a select column."""
+
+        __fields__ = {"ref", "type", "value"}
+
+        @classmethod
+        def parse_obj(cls: Type[BO], obj: Dict[str, Any]) -> BO:
+            # the API omits the key for a cell that has no value
+            obj.setdefault("value", None)
+            return super().parse_obj(obj)
+
+    class SingleSelectColumn(SelectColumn):
+        type: Literal["single_select"]
+        """Type of this column."""
+
+        value: Optional[str]
+        """Label of the option selected for this column. Assigning a label that does not
+        exist yet creates it as a new option on this column."""
+
+    class MultiSelectColumn(SelectColumn):
+        type: Literal["multi_select"]
+        """Type of this column."""
+
+        value: Optional[List[str]]
+        """Labels of the options selected for this column. Assigning labels that do not
+        exist yet creates them as new options on this column. Assigning an empty list
+        :code:`[]` stores an empty selection (:code:`is_empty`), and :code:`None`
+        removes the cell (:code:`is_non_existent`)."""
 
     class TextToAnalyzeColumn(Column):
         class Topic(BaseObject[ProjectsController]):
@@ -945,6 +1019,8 @@ class Row(BaseResource[ProjectsController]):
             "any": cls.AnyColumn,
             "text": cls.TextColumn,
             "text_to_analyze": cls.TextToAnalyzeColumn,
+            "single_select": cls.SingleSelectColumn,
+            "multi_select": cls.MultiSelectColumn,
         }
         obj["columns"] = CaplenaList(
             values=[type_to_column[column["type"]].parse_obj(column) for column in obj["columns"]]

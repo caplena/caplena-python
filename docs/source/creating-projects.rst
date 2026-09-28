@@ -37,7 +37,23 @@ Next, we'll build the project's columns which defines the schema of the rows to 
           description="Please explain the rating in a few sentences.",
           topics=[],
       ),
+      NonTTAColumnDefinition(
+          ref="channel",
+          name="Support channel",
+          type=NonTTAColumnType.single_select,
+      ),
+      NonTTAColumnDefinition(
+          ref="topics_of_interest",
+          name="Topics of interest",
+          type=NonTTAColumnType.multi_select,
+      ),
   ]
+
+.. note::
+    Columns of type :code:`single_select` and :code:`multi_select` hold values picked from a
+    fixed set of options. You do not define these options upfront: they are created as you
+    append rows referencing them. Such columns are only returned by the API for
+    :code:`Caplena-API-Version: 2026-09-18` and later, which is the client default.
 
 
 Now we're ready to create the project:
@@ -85,6 +101,9 @@ The ordering of columns within a row does not matter as columns are referenced u
               columns=[
                   NonTTACell(ref="id", value=i),
                   TTACell(ref="nps_why", value=f"Row {i}", topics=[]),
+                  # select cells are referenced by their option label
+                  NonTTACell(ref="channel", value="Phone"),
+                  NonTTACell(ref="topics_of_interest", value=["Pricing", "Support"]),
               ]
           ) for i in range(100)
       ]
