@@ -837,3 +837,91 @@ def test_updating_a_row_succeeds(
         row_dict["columns"][0].pop(computed_field)
     expected_dict["columns"][1].update({"value": 100000})
     assert row_dict == expected_dict
+
+
+def select_project_create_payload() -> Dict[str, Any]:
+    return ProjectSettings(
+        name="Select Project",
+        language=ProjectLanguage.EN,
+        columns=[
+            TTAColumnDefinition(
+                ref="our_strengths",
+                name="Do you like us?",
+                type=TTAColumnType.text_to_analyze,
+                topics=[],
+            ),
+            NonTTAColumnDefinition(
+                ref="channel",
+                name="Support channel",
+                type=NonTTAColumnType.single_select,
+            ),
+            NonTTAColumnDefinition(
+                ref="topics_of_interest",
+                name="Topics of interest",
+                type=NonTTAColumnType.multi_select,
+            ),
+        ],
+    ).model_dump(exclude_none=True)
+
+
+def test_select_columns_roundtrip_succeeds(
+    controller: ProjectsController, create_project: CreateProjectFunctionType
+) -> None:
+    project = create_project(select_project_create_payload())
+    _, channel, topics_of_interest = project.columns
+
+    assert isinstance(channel, ProjectDetail.Select)
+    assert "single_select" == channel.type
+    assert isinstance(topics_of_interest, ProjectDetail.Select)
+    assert "multi_select" == topics_of_interest.type
+
+    (row,) = append_rows_and_retrieve(
+        controller,
+        project_id=project.id,
+        rows=[
+            RowPayload(
+                columns=[
+                    TTACell(ref="our_strengths", value="Some other text.", topics=[]),
+                    NonTTACell(ref="channel", value="Phone"),
+                    NonTTACell(ref="topics_of_interest", value=["Pricing", "Support"]),
+                ]
+            ).model_dump()
+        ],
+    )
+    _, channel_cell, topics_cell = row.columns
+
+    assert isinstance(channel_cell, Row.SingleSelectColumn)
+    assert "Phone" == channel_cell.value
+
+    assert isinstance(topics_cell, Row.MultiSelectColumn)
+    assert ["Pricing", "Support"] == topics_cell.value
+
+    # options are created on the fly, so they only show up on the refreshed project
+    project.refresh()
+    _, channel, topics_of_interest = project.columns
+
+    assert "Phone" in channel.enum
+    assert {"Pricing", "Support"} <= set(topics_of_interest.enum)
+
+    filt = RowsFilter.Columns.single_select(ref="channel", exact="Phone")
+    assert 1 == controller.list_rows(id=project.id, filter=filt).count
+
+    # labels are matched case-sensitively, and an unknown one matches no rows
+    filt = RowsFilter.Columns.single_select(ref="channel", exact="phone")
+    assert 0 == controller.list_rows(id=project.id, filter=filt).count
+
+    filt = RowsFilter.Columns.multi_select(ref="topics_of_interest", contains="Pricing")
+    assert 1 == controller.list_rows(id=project.id, filter=filt).count
+
+    filt = RowsFilter.Columns.multi_select(ref="topics_of_interest", is_empty=True)
+    assert 0 == controller.list_rows(id=project.id, filter=filt).count
+
+    channel_cell.value = "E-Mail"
+    topics_cell.value = ["Support"]
+    row.save()
+
+    refreshed = controller.retrieve_row(p_id=project.id, r_id=row.id)
+    _, refreshed_channel, refreshed_topics = refreshed.columns
+
+    assert "E-Mail" == refreshed_channel.value
+    assert ["Support"] == refreshed_topics.value

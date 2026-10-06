@@ -73,6 +73,7 @@ class ApiVersionTests(unittest.TestCase):
 
     def test_api_version_string_succeeds(self) -> None:
         self.assertEqual("2022-11-22", ApiVersion.VER_2022_11_22.version)
+        self.assertEqual("2026-09-18", ApiVersion.VER_2026_09_18.version)
 
 
 class ApiRequestorTests(unittest.TestCase):
